@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Editor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --accent-color: #212529;
+            --muted-text: #6c757d;
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 0.9rem;
+        }
+        
+        .container {
+            max-width: 1100px;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            margin-bottom: 16px;
+        }
+        
+        .card-body, .card-header, .card-footer {
+            padding: 12px;
+        }
+        
+        .btn-primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            padding: 4px 10px;
+            font-size: 0.85rem;
+        }
+        
+        .btn-primary:hover {
+            background-color: #333;
+            border-color: #333;
+        }
+        
+        .btn-sm {
+            padding: 2px 8px;
+            font-size: 0.8rem;
+        }
+        
+        #editor, #preview {
+            min-height: 400px;
+            height: calc(100vh - 250px);
+            overflow-y: auto;
+            font-size: 0.95rem;
+        }
+        
+        #editor {
+            font-family: monospace;
+            resize: none;
+            tab-size: 4;
+            border: none;
+            background-color: var(--card-bg);
+            padding: 12px;
+        }
+        
+        .tool-button {
+            width: 40px;
+            padding: 4px;
+            font-size: 0.85rem;
+        }
+        
+        .syntax-highlight {
+            color: var(--bs-info);
+        }
+        
+        .code-block {
+            background-color: rgba(0, 0, 0, 0.04);
+            border-radius: 4px;
+            font-family: monospace;
+            padding: 1em;
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+        
+        blockquote {
+            border-left: 4px solid var(--border-color);
+            padding-left: 1em;
+            color: var(--muted-text);
+        }
+        
+        .navbar {
+            background-color: var(--card-bg) !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .nav-link {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+        }
+        
+        .modal-content {
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .modal-header {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-body {
+            padding: 15px;
+        }
+        
+        .modal-footer {
+            padding: 10px 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Make it mobile-friendly */
+        @media (max-width: 768px) {
+            .row.editor-container {
+                flex-direction: column;
+            }
+            
+            #editor, #preview {
+                height: calc(50vh - 180px);
+                min-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-markdown-fill me-2"></i>
+                Markdown Editor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <button class="nav-link" id="clearBtn">
+                            <i class="bi bi-trash me-1"></i>Clear
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="saveBtn">
+                            <i class="bi bi-download me-1"></i>Save MD
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="copyHtmlBtn">
+                            <i class="bi bi-clipboard me-1"></i>Copy HTML
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="modal" data-bs-target="#helpModal">
+                            <i class="bi bi-question-circle me-1"></i>Help
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-3">
+        <!-- Toolbar -->
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="btn-toolbar" role="toolbar" aria-label="Markdown formatting">
+                    <div class="btn-group me-2" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="h1">H1</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="h2">H2</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="h3">H3</button>
+                    </div>
+                    <div class="btn-group me-2" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="bold"><i class="bi bi-type-bold"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="italic"><i class="bi bi-type-italic"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="strike"><i class="bi bi-type-strikethrough"></i></button>
+                    </div>
+                    <div class="btn-group me-2" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="ul"><i class="bi bi-list-ul"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="ol"><i class="bi bi-list-ol"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="task"><i class="bi bi-check2-square"></i></button>
+                    </div>
+                    <div class="btn-group me-2" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="link"><i class="bi bi-link-45deg"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="image"><i class="bi bi-image"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="code"><i class="bi bi-code"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="codeblock"><i class="bi bi-code-square"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="quote"><i class="bi bi-blockquote-left"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tool-button" data-md="hr"><i class="bi bi-dash-lg"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor and Preview -->
+        <div class="row editor-container">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header py-2">
+                        <i class="bi bi-pencil-fill me-2"></i>Markdown Editor
+                    </div>
+                    <div class="card-body p-0">
+                        <textarea id="editor" class="form-control h-100 border-0 rounded-0"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header py-2">
+                        <i class="bi bi-eye-fill me-2"></i>Preview
+                    </div>
+                    <div class="card-body" id="preview">
+                        <div class="text-center text-muted">
+                            <i class="bi bi-markdown fs-4"></i>
+                            <p>Type in the editor to see the preview</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="helpModalLabel">Markdown Syntax Guide</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container">
+                        <h4>Basic Syntax</h4>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Element</th>
+                                    <th>Markdown Syntax</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Heading 1</td>
+                                    <td><code># Heading 1</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Heading 2</td>
+                                    <td><code>## Heading 2</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Heading 3</td>
+                                    <td><code>### Heading 3</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Bold</td>
+                                    <td><code>**bold text**</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Italic</td>
+                                    <td><code>*italicized text*</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Strikethrough</td>
+                                    <td><code>~~strikethrough~~</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Blockquote</td>
+                                    <td><code>> blockquote</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Ordered List</td>
+                                    <td><code>1. First item<br>2. Second item</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Unordered List</td>
+                                    <td><code>- First item<br>- Second item</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Task List</td>
+                                    <td><code>- [ ] Unchecked task<br>- [x] Checked task</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Code</td>
+                                    <td><code>`code`</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Code Block</td>
+                                    <td><code>```<br>code block<br>```</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Horizontal Rule</td>
+                                    <td><code>---</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Link</td>
+                                    <td><code>[title](https://www.example.com)</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Image</td>
+                                    <td><code>![alt text](image.jpg)</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Marked.js for better Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const editor = document.getElementById('editor');
+            const preview = document.getElementById('preview');
+            const saveBtn = document.getElementById('saveBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const copyHtmlBtn = document.getElementById('copyHtmlBtn');
+            const toolButtons = document.querySelectorAll('[data-md]');
+            
+            // Configure marked options
+            marked.setOptions({
+                breaks: true,       // Add <br> on a single line break
+                gfm: true,          // GitHub Flavored Markdown
+                headerIds: true,    // Add IDs to headers
+                mangle: false       // Don't escape HTML
+            });
+            
+            // Load saved content from localStorage
+            const savedContent = localStorage.getItem('markdownContent');
+            if (savedContent) {
+                editor.value = savedContent;
+                updatePreview();
+            } else {
+                // Default sample content
+                editor.value = "# Добро пожаловать в Markdown Editor\n\nЭто редактор markdown с функцией предварительного просмотра в реальном времени.\n\n## Возможности\n\n- **Жирный текст** и *курсив*\n- Списки и [ссылки](https://example.com)\n- Блоки кода\n\n```javascript\nfunction hello() {\n  console.log('Привет, мир!');\n}\n```\n\n> Цитаты также поддерживаются!\n\n### Попробуйте сами\n\nРедактируйте этот текст, чтобы увидеть обновление предварительного просмотра в реальном времени.";
+                updatePreview();
+            }
+            
+            // Update preview on input
+            editor.addEventListener('input', function() {
+                updatePreview();
+                // Save to localStorage
+                localStorage.setItem('markdownContent', editor.value);
+            });
+            
+            // Clear editor
+            clearBtn.addEventListener('click', function() {
+                if (confirm("Вы уверены, что хотите очистить редактор? Это удалит вашу текущую работу.")) {
+                    editor.value = '';
+                    updatePreview();
+                    localStorage.removeItem('markdownContent');
+                }
+            });
+            
+            // Save Markdown file
+            saveBtn.addEventListener('click', function() {
+                if (editor.value.trim() === '') {
+                    alert('Редактор пуст. Нечего сохранять.');
+                    return;
+                }
+                
+                const blob = new Blob([editor.value], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'document.md';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+            
+            // Copy HTML
+            copyHtmlBtn.addEventListener('click', function() {
+                const tempElem = document.createElement('textarea');
+                tempElem.value = preview.innerHTML;
+                document.body.appendChild(tempElem);
+                tempElem.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempElem);
+                
+                // Show feedback
+                const originalText = copyHtmlBtn.innerHTML;
+                copyHtmlBtn.innerHTML = '<i class="bi bi-clipboard-check me-1"></i>Скопировано!';
+                setTimeout(() => {
+                    copyHtmlBtn.innerHTML = originalText;
+                }, 2000);
+            });
+            
+            // Handle toolbar buttons
+            toolButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const action = this.getAttribute('data-md');
+                    insertMarkdown(action);
+                });
+            });
+            
+            // Insert markdown syntax based on button clicked
+            function insertMarkdown(type) {
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                const selectedText = editor.value.substring(start, end);
+                let insertText = '';
+                
+                switch(type) {
+                    case 'h1':
+                        insertText = selectedText ? `# ${selectedText}` : '# Заголовок 1';
+                        break;
+                    case 'h2':
+                        insertText = selectedText ? `## ${selectedText}` : '## Заголовок 2';
+                        break;
+                    case 'h3':
+                        insertText = selectedText ? `### ${selectedText}` : '### Заголовок 3';
+                        break;
+                    case 'bold':
+                        insertText = selectedText ? `**${selectedText}**` : '**жирный текст**';
+                        break;
+                    case 'italic':
+                        insertText = selectedText ? `*${selectedText}*` : '*курсив*';
+                        break;
+                    case 'strike':
+                        insertText = selectedText ? `~~${selectedText}~~` : '~~зачеркнутый текст~~';
+                        break;
+                    case 'ul':
+                        insertText = selectedText ? selectedText.split('\n').map(line => `- ${line}`).join('\n') : '- Пункт списка\n- Еще пункт';
+                        break;
+                    case 'ol':
+                        insertText = selectedText ? selectedText.split('\n').map((line, i) => `${i+1}. ${line}`).join('\n') : '1. Первый пункт\n2. Второй пункт';
+                        break;
+                    case 'task':
+                        insertText = selectedText ? selectedText.split('\n').map(line => `- [ ] ${line}`).join('\n') : '- [ ] Задача\n- [x] Выполненная задача';
+                        break;
+                    case 'link':
+                        insertText = selectedText ? `[${selectedText}](https://example.com)` : '[текст ссылки](https://example.com)';
+                        break;
+                    case 'image':
+                        insertText = '![описание изображения](https://example.com/image.jpg)';
+                        break;
+                    case 'code':
+                        insertText = selectedText ? `\`${selectedText}\`` : '`код`';
+                        break;
+                    case 'codeblock':
+                        insertText = selectedText ? `\`\`\`\n${selectedText}\n\`\`\`` : '```\nблок кода\n```';
+                        break;
+                    case 'quote':
+                        insertText = selectedText ? selectedText.split('\n').map(line => `> ${line}`).join('\n') : '> Цитата';
+                        break;
+                    case 'hr':
+                        insertText = '\n---\n';
+                        break;
+                }
+                
+                // Insert the text at cursor position
+                if (selectedText) {
+                    const textBefore = editor.value.substring(0, start);
+                    const textAfter = editor.value.substring(end);
+                    editor.value = textBefore + insertText + textAfter;
+                } else {
+                    const textBefore = editor.value.substring(0, start);
+                    const textAfter = editor.value.substring(start);
+                    editor.value = textBefore + insertText + textAfter;
+                }
+                
+                updatePreview();
+                localStorage.setItem('markdownContent', editor.value);
+            }
+            
+            // Update preview using marked.js
+            function updatePreview() {
+                const markdownText = editor.value;
+                try {
+                    preview.innerHTML = marked.parse(markdownText);
+                } catch (error) {
+                    console.error('Markdown parsing error:', error);
+                    preview.innerHTML = '<div class="alert alert-danger">Ошибка при обработке markdown</div>';
+                }
+            }
+            
+            // Add tab support to the editor
+            editor.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    
+                    const start = this.selectionStart;
+                    const end = this.selectionEnd;
+                    
+                    // Insert tab character
+                    this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+                    
+                    // Move cursor after inserted tab
+                    this.selectionStart = this.selectionEnd = start + 1;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
