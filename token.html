@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token API - Простой интерфейс</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-top: 0;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+        }
+        
+        .tab.active {
+            border-bottom-color: #2563eb;
+            color: #2563eb;
+        }
+        
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .result h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #334155;
+        }
+        
+        .result pre {
+            margin: 0;
+            padding: 15px;
+            background-color: #334155;
+            color: #e2e8f0;
+            border-radius: 6px;
+            font-family: monospace;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        
+        .placeholder {
+            color: #94a3b8;
+            font-style: italic;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .error {
+            color: #ef4444;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fef2f2;
+            border-radius: 6px;
+            border: 1px solid #fee2e2;
+        }
+        
+        .copy-btn {
+            background: none;
+            border: none;
+            color: #64748b;
+            padding: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            float: right;
+        }
+        
+        .copy-btn:hover {
+            color: #2563eb;
+            background: none;
+        }
+        
+        .options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .radio-group {
+            display: flex;
+            align-items: center;
+        }
+        
+        .radio-group input {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Token API - Простой интерфейс</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-mode="text-to-token">Текст → Токен</div>
+            <div class="tab" data-mode="token-to-text">Токен → Текст</div>
+        </div>
+        
+        <div class="options">
+            <div class="radio-group">
+                <input type="radio" id="get-method" name="method" value="GET" checked>
+                <label for="get-method">GET</label>
+            </div>
+            <div class="radio-group">
+                <input type="radio" id="post-method" name="method" value="POST">
+                <label for="post-method">POST</label>
+            </div>
+        </div>
+        
+        <div id="text-to-token-form">
+            <div class="form-group">
+                <label for="text-input">Введите текст для конвертации:</label>
+                <textarea id="text-input" rows="4" placeholder="Например: Привет, мир!"></textarea>
+            </div>
+            
+            <button id="convert-btn">Конвертировать в токен</button>
+        </div>
+        
+        <div id="token-to-text-form" style="display: none;">
+            <div class="form-group">
+                <label for="token-input">Введите токен для конвертации:</label>
+                <input type="text" id="token-input" placeholder="Например: ABCDEFGHIJ_1234_AB">
+            </div>
+            
+            <button id="deconvert-btn">Конвертировать в текст</button>
+        </div>
+        
+        <div class="result">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Результат:</h3>
+                <button class="copy-btn" id="copy-btn">Копировать</button>
+            </div>
+            <pre id="result-content"><span class="placeholder">// Здесь появится результат запроса</span></pre>
+            <div id="error-message" class="error" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Элементы страницы
+        const tabs = document.querySelectorAll('.tab');
+        const textToTokenForm = document.getElementById('text-to-token-form');
+        const tokenToTextForm = document.getElementById('token-to-text-form');
+        const textInput = document.getElementById('text-input');
+        const tokenInput = document.getElementById('token-input');
+        const convertBtn = document.getElementById('convert-btn');
+        const deconvertBtn = document.getElementById('deconvert-btn');
+        const resultContent = document.getElementById('result-content');
+        const errorMessage = document.getElementById('error-message');
+        const copyBtn = document.getElementById('copy-btn');
+        const methodRadios = document.getElementsByName('method');
+        
+        // Текущий режим: text-to-token или token-to-text
+        let currentMode = 'text-to-token';
+        
+        // Переключение вкладок
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                currentMode = tab.dataset.mode;
+                
+                if (currentMode === 'text-to-token') {
+                    textToTokenForm.style.display = 'block';
+                    tokenToTextForm.style.display = 'none';
+                } else {
+                    textToTokenForm.style.display = 'none';
+                    tokenToTextForm.style.display = 'block';
+                }
+                
+                // Сбрасываем результат
+                resultContent.innerHTML = '<span class="placeholder">// Здесь появится результат запроса</span>';
+                errorMessage.style.display = 'none';
+            });
+        });
+        
+        // Получить выбранный метод (GET или POST)
+        function getSelectedMethod() {
+            for (const radio of methodRadios) {
+                if (radio.checked) {
+                    return radio.value;
+                }
+            }
+            return 'GET'; // По умолчанию
+        }
+        
+        // Конвертация текста в токен
+        convertBtn.addEventListener('click', async () => {
+            const text = textInput.value.trim();
+            if (!text) {
+                showError('Пожалуйста, введите текст для конвертации');
+                return;
+            }
+            
+            const method = getSelectedMethod();
+            setLoading(true);
+            
+            try {
+                let response;
+                
+                if (method === 'GET') {
+                    response = await fetch(`/api/simple/convert?text=${encodeURIComponent(text)}`);
+                } else {
+                    response = await fetch('/api/simple/convert', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ text }),
+                    });
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка: ${response.status} ${response.statusText}`);
+                }
+                
+                const result = await response.text();
+                showResult(result);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+        
+        // Конвертация токена в текст
+        deconvertBtn.addEventListener('click', async () => {
+            const token = tokenInput.value.trim();
+            if (!token) {
+                showError('Пожалуйста, введите токен для конвертации');
+                return;
+            }
+            
+            const method = getSelectedMethod();
+            setLoading(true);
+            
+            try {
+                let response;
+                
+                if (method === 'GET') {
+                    response = await fetch(`/api/simple/deconvert?token=${encodeURIComponent(token)}`);
+                } else {
+                    response = await fetch('/api/simple/deconvert', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ token }),
+                    });
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка: ${response.status} ${response.statusText}`);
+                }
+                
+                const result = await response.text();
+                showResult(result);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+        
+        // Копирование результата
+        copyBtn.addEventListener('click', () => {
+            const result = resultContent.textContent;
+            
+            if (result && !result.includes('// Здесь появится результат запроса')) {
+                navigator.clipboard.writeText(result)
+                    .then(() => {
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = 'Скопировано!';
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Ошибка при копировании: ', err);
+                    });
+            }
+        });
+        
+        // Вспомогательные функции
+        function showResult(result) {
+            resultContent.textContent = result;
+            errorMessage.style.display = 'none';
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+        
+        function setLoading(isLoading) {
+            if (isLoading) {
+                convertBtn.textContent = 'Загрузка...';
+                deconvertBtn.textContent = 'Загрузка...';
+                convertBtn.disabled = true;
+                deconvertBtn.disabled = true;
+            } else {
+                convertBtn.textContent = 'Конвертировать в токен';
+                deconvertBtn.textContent = 'Конвертировать в текст';
+                convertBtn.disabled = false;
+                deconvertBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
