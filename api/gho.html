@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script>
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      const part = () => Array.from({length: 3}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+      document.write(`${part()}-${part()}`);
+    </script>
+  </head>
+  <body></body>
+</html>
