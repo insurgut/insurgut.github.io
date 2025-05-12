@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHo Key Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 30px;
+        }
+
+        .gradient-block {
+            background: linear-gradient(90deg, #f5923e 0%, #ef4747 100%);
+            width: 400px;
+            max-width: 90%;
+            height: 120px;
+            border-radius: 20px;
+            margin: 0 auto 30px;
+        }
+
+        .container {
+            max-width: 350px;
+            width: 90%;
+            padding: 10px;
+            margin-top: 0;
+            background-color: transparent;
+        }
+
+        .key-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .key-part {
+            background-color: #f9f9f9;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            padding: 10px 8px;
+            text-align: center;
+            width: 60px;
+            background-image: linear-gradient(white, white), 
+                              linear-gradient(90deg, #f5923e 0%, #ef4747 100%);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+        }
+
+        .dash {
+            font-size: 26px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            background-color: transparent;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .icon {
+            color: #333;
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="gradient-block"></div>
+
+    <div class="container">
+        <div class="key-display">
+            <div id="key-part1" class="key-part">ABC</div>
+            <span class="dash">-</span>
+            <div id="key-part2" class="key-part">123</div>
+            <div class="button-container">
+                <button id="generate" title="Generate">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 4v6h-6"></path>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                </button>
+
+                <button id="copy" title="Copy">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+
+                <button id="share" title="Share">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                        <polyline points="16 6 12 2 8 6"></polyline>
+                        <line x1="12" y1="2" x2="12" y2="15"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function generateRandomKeyPart(length = 3) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function updateKey() {
+            document.getElementById('key-part1').textContent = generateRandomKeyPart();
+            document.getElementById('key-part2').textContent = generateRandomKeyPart();
+        }
+
+        document.getElementById('copy').addEventListener('click', () => {
+            const code = `${document.getElementById('key-part1').textContent}-${document.getElementById('key-part2').textContent}`;
+            navigator.clipboard.writeText(code)
+                .then(() => alert('Copied: ' + code))
+                .catch(err => console.error('Ошибка копирования:', err));
+        });
+
+        document.getElementById('share').addEventListener('click', () => {
+            const code = `${document.getElementById('key-part1').textContent}-${document.getElementById('key-part2').textContent}`;
+            window.open(`https://t.me/share?text=CHo%20${encodeURIComponent(code)}`, '_blank');
+        });
+
+        document.getElementById('generate').addEventListener('click', updateKey);
+        updateKey();
+    </script>
+</body>
+</html>
