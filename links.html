@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>insurgut | links</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #212121;
+      color: #e0e0e0;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #codeContainer {
+      width: 90%;
+      max-width: 800px;
+      height: 60vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .code-line {
+      white-space: pre;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #links {
+      display: none;
+      flex-direction: column;
+      gap: 15px;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    .link-button {
+      background-color: #2a2a2a;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 30px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 260px;
+      font-size: 1rem;
+      transition: background 0.3s, transform 0.3s;
+    }
+
+    .link-button:hover {
+      background-color: #3a3a3a;
+      transform: scale(1.03);
+    }
+
+    .arrow {
+      margin-left: auto;
+    }
+
+    .highlight {
+      color: #5fb9ff;
+    }
+  </style>
+</head>
+<body>
+  <div id="codeContainer"></div>
+
+  <div id="links">
+    <a class="link-button" href="https://github.com/insurgut" target="_blank">
+      insurgut<span class="arrow">↗</span>
+    </a>
+    <a class="link-button" href="https://lisurgut.t.me" target="_blank">
+      lisurgut<span class="highlight">.t.me</span><span class="arrow">↗</span>
+    </a>
+    <a class="link-button" href="https://lisurgutinbio.t.me" target="_blank">
+      lisurgutinbio<span class="highlight">.t.me</span><span class="arrow">↗</span>
+    </a>
+  </div>
+
+<script>
+  const codeLines = [
+    "// textService.js",
+    "import { analyzeSentiment, summarizeText } from './ai/nlp.js';",
+    "import express from 'express';",
+    "import rateLimit from 'express-rate-limit';",
+    "import { queueJob } from './jobs/queue.js';",
+    "import logger from './utils/logger.js';",
+    "",
+    "const app = express();",
+    "app.use(express.json());",
+    "",
+    "// Rate limiter",
+    "app.use(rateLimit({",
+    "  windowMs: 60 * 1000,",
+    "  max: 100,",
+    "}));",
+    "",
+    "// POST /analyze",
+    "app.post('/analyze', async (req, res) => {",
+    "  const { text } = req.body;",
+    "  if (!text) return res.status(400).json({ error: 'No text provided' });",
+    "",
+    "  logger.info('Text received');",
+    "  const sentiment = await analyzeSentiment(text);",
+    "  const summary = await summarizeText(text);",
+    "",
+    "  res.json({ sentiment, summary });",
+    "});",
+    "",
+    "// Background job endpoint",
+    "app.post('/submit-task', (req, res) => {",
+    "  const taskId = queueJob(req.body);",
+    "  res.json({ status: 'queued', taskId });",
+    "});",
+    "",
+    "// Error handler",
+    "app.use((err, req, res, next) => {",
+    "  logger.error(err);",
+    "  res.status(500).json({ error: 'Internal server error' });",
+    "});",
+    "",
+    "// Start service",
+    "const PORT = process.env.PORT || 8080;",
+    "app.listen(PORT, () => logger.info(`Service running on ${PORT}`));"
+  ];
+
+  const container = document.getElementById('codeContainer');
+  const links = document.getElementById('links');
+
+  let lineIndex = 0;
+  const interval = setInterval(() => {
+    if (lineIndex >= codeLines.length) {
+      clearInterval(interval);
+      setTimeout(() => {
+        container.style.display = "none";
+        links.style.display = "flex";
+        setTimeout(() => {
+          links.style.opacity = 1;
+        }, 100);
+      }, 600);
+      return;
+    }
+
+    const line = document.createElement('div');
+    line.className = 'code-line';
+    line.textContent = codeLines[lineIndex++];
+    container.appendChild(line);
+
+    if (container.children.length > 18) {
+      container.removeChild(container.children[0]);
+    }
+
+    requestAnimationFrame(() => {
+      line.style.opacity = 1;
+      line.style.transform = 'translateY(0)';
+    });
+  }, 160);
+</script>
