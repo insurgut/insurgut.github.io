@@ -1,48 +1,55 @@
 <div id="container"></div>
 <script>
   const container = document.getElementById('container');
-  
-  // Собираем системные цвета и их источники
-  const systemColors = [
-    { name: 'background', value: window.getComputedStyle(document.body).backgroundColor },
-    { name: 'text', value: window.getComputedStyle(document.body).color },
-    { name: 'accent', value: window.getComputedStyle(document.documentElement).accentColor || '#0000ff' },
+
+  // Фиксированная палитра цветов на случай, если другие источники недоступны
+  const fallbackColors = [
+    '#ff0000', // Красный
+    '#00ff00', // Зелёный
+    '#0000ff', // Синий
+    '#d3d3d3', // Светло-серый
+    '#800080', // Фиолетовый
+    '#ffff00', // Жёлтый
+    '#ffa500', // Оранжевый
+    '#00ffff', // Циан
+    '#ff69b4', // Розовый
+    '#008000'  // Тёмно-зелёный
   ];
 
-  // Проверяем CSS-переменные из :root
+  // Получаем цвета из Telegram Web Apps, если доступно
+  let telegramColors = [];
+  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.themeParams) {
+    const themeParams = window.Telegram.WebApp.themeParams;
+    // Извлекаем все доступные цвета из themeParams
+    telegramColors = Object.values(themeParams).filter(color => 
+      typeof color === 'string' && /^#[0-9A-Fa-f]{6}$|^rgb/.test(color)
+    );
+  }
+
+  // Получаем CSS-переменные из :root
   const rootStyles = window.getComputedStyle(document.documentElement);
   const cssVariables = Array.from(rootStyles)
     .filter(prop => prop.startsWith('--') && /^#[0-9A-Fa-f]{6}$|^rgb/.test(rootStyles.getPropertyValue(prop).trim()))
-    .map(prop => ({
-      name: prop.replace('--', ''), // Убираем "--" для читаемого имени
-      value: rootStyles.getPropertyValue(prop).trim()
-    }));
+    .map(prop => rootStyles.getPropertyValue(prop).trim());
 
-  // Проверяем системную тему (светлая/тёмная)
+  // Получаем системные цвета на основе prefers-color-scheme
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  systemColors.push({
-    name: isDarkMode ? 'dark-theme' : 'light-theme',
-    value: isDarkMode ? '#1a1a1a' : '#f0f0f0'
-  });
+  const systemColors = [
+    isDarkMode ? '#1a1a1a' : '#f0f0f0', // Основной цвет темы
+    isDarkMode ? '#333333' : '#e0e0e0', // Дополнительный оттенок
+  ];
 
-  // Объединяем все системные цвета и CSS-переменные, убираем дубликаты по значению
-  const allColors = [...new Set([...systemColors, ...cssVariables].map(item => JSON.stringify(item)))].map(item => JSON.parse(item));
+  // Объединяем все цвета (Telegram, CSS, системные, фиксированные) и убираем дубликаты
+  const allColors = [...new Set([...telegramColors, ...cssVariables, ...systemColors, ...fallbackColors])];
 
   // Создаём квадратик для каждого цвета
-  allColors.forEach(({ name, value }) => {
-    if (value && /^#[0-9A-Fa-f]{6}$|^rgb/.test(value)) { // Проверяем валидность цвета
-      const square = document.createElement('div');
-      square.style.width = '100px';
-      square.style.height = '100px';
-      square.style.backgroundColor = value;
-      square.style.display = 'inline-block';
-      square.style.margin = '5px';
-      square.style.cursor = 'pointer';
-      square.title = `Color: ${value} (Source: ${name})`; // Показывает источник при наведении
-      square.addEventListener('click', () => {
-        alert(`Color: ${value} (Source: ${name})`); // Показывает источник при клике
-      });
-      container.appendChild(square);
-    }
+  allColors.forEach(color => {
+    const square = document.createElement('div');
+    square.style.width = '100px';
+    square.style.height = '100px';
+    square.style.backgroundColor = color;
+    square.style.display = 'inline-block';
+    square.style.margin = '5px';
+    container.appendChild(square);
   });
 </script>
