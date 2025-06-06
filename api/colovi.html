@@ -1,0 +1,48 @@
+<div id="container"></div>
+<script>
+  const container = document.getElementById('container');
+  
+  // Собираем системные цвета и их источники
+  const systemColors = [
+    { name: 'background', value: window.getComputedStyle(document.body).backgroundColor },
+    { name: 'text', value: window.getComputedStyle(document.body).color },
+    { name: 'accent', value: window.getComputedStyle(document.documentElement).accentColor || '#0000ff' },
+  ];
+
+  // Проверяем CSS-переменные из :root
+  const rootStyles = window.getComputedStyle(document.documentElement);
+  const cssVariables = Array.from(rootStyles)
+    .filter(prop => prop.startsWith('--') && /^#[0-9A-Fa-f]{6}$|^rgb/.test(rootStyles.getPropertyValue(prop).trim()))
+    .map(prop => ({
+      name: prop.replace('--', ''), // Убираем "--" для читаемого имени
+      value: rootStyles.getPropertyValue(prop).trim()
+    }));
+
+  // Проверяем системную тему (светлая/тёмная)
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  systemColors.push({
+    name: isDarkMode ? 'dark-theme' : 'light-theme',
+    value: isDarkMode ? '#1a1a1a' : '#f0f0f0'
+  });
+
+  // Объединяем все системные цвета и CSS-переменные, убираем дубликаты по значению
+  const allColors = [...new Set([...systemColors, ...cssVariables].map(item => JSON.stringify(item)))].map(item => JSON.parse(item));
+
+  // Создаём квадратик для каждого цвета
+  allColors.forEach(({ name, value }) => {
+    if (value && /^#[0-9A-Fa-f]{6}$|^rgb/.test(value)) { // Проверяем валидность цвета
+      const square = document.createElement('div');
+      square.style.width = '100px';
+      square.style.height = '100px';
+      square.style.backgroundColor = value;
+      square.style.display = 'inline-block';
+      square.style.margin = '5px';
+      square.style.cursor = 'pointer';
+      square.title = `Color: ${value} (Source: ${name})`; // Показывает источник при наведении
+      square.addEventListener('click', () => {
+        alert(`Color: ${value} (Source: ${name})`); // Показывает источник при клике
+      });
+      container.appendChild(square);
+    }
+  });
+</script>
