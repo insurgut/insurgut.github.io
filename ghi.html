@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Пример кнопок и цветов</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Пример UI элементов для проверки темы</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
       --tg-bg-color: #ffffff;
@@ -14,17 +14,13 @@
 
     body {
       margin: 0;
-      padding: 0;
-      font-family: sans-serif;
+      padding: 20px;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--tg-bg-color);
       color: var(--tg-text-color);
       transition: background-color 0.3s, color 0.3s;
-      display: flex;
-      flex-direction: column;
       min-height: 100vh;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
+      line-height: 1.5;
     }
 
     header {
@@ -32,45 +28,318 @@
       top: 0;
       left: 0;
       width: 100%;
-      padding: 12px 16px;
       background-color: var(--tg-bg-color);
-      display: flex;
-      justify-content: flex-start;
+      padding: 12px 16px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
       z-index: 1000;
     }
 
     .burger {
-      font-size: 24px;
+      font-size: 28px;
       background: none;
       border: none;
       cursor: pointer;
       color: var(--tg-text-color);
+      margin-right: 16px;
     }
 
-    button#agree {
+    main {
+      margin-top: 60px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    h1, h2, h3 {
+      margin: 0 0 10px 0;
+    }
+
+    /* Кнопки */
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    button {
       padding: 12px 24px;
+      font-weight: 600;
       font-size: 16px;
-      font-weight: bold;
       border: none;
       border-radius: 8px;
-      background-color: var(--tg-button-color);
-      color: var(--tg-button-text-color);
       cursor: pointer;
+      color: white;
       transition: filter 0.2s;
+      min-width: 140px;
+      text-align: center;
+      user-select: none;
     }
 
-    button#agree:hover {
+    button:hover {
       filter: brightness(1.1);
     }
+
+    /* Цвета кнопок */
+    .btn-primary {
+      background-color: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+    }
+
+    .btn-success {
+      background-color: #28a745;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+    }
+
+    .btn-warning {
+      background-color: #ffc107;
+      color: #212529;
+    }
+
+    .btn-info {
+      background-color: #17a2b8;
+    }
+
+    .btn-light {
+      background-color: #f8f9fa;
+      color: #212529;
+      border: 1px solid #ced4da;
+    }
+
+    .btn-dark {
+      background-color: #343a40;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--tg-button-color);
+      color: var(--tg-button-color);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+    }
+
+    /* Плашки (карточки) */
+    .card {
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background-color: var(--tg-bg-color);
+      border: 1px solid rgba(0,0,0,0.1);
+      transition: box-shadow 0.3s;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .card-primary {
+      background-color: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+      border: none;
+    }
+
+    .card-secondary {
+      background-color: #f0f0f0;
+      color: #333;
+    }
+
+    /* Текстовые элементы */
+    .text-muted {
+      color: #6c757d;
+    }
+
+    .text-highlight {
+      background-color: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* Формы */
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    input[type="text"], input[type="email"], textarea, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--tg-button-color);
+      box-shadow: 0 0 5px var(--tg-button-color);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* Списки */
+    ul {
+      padding-left: 20px;
+    }
+
+    ul li {
+      margin-bottom: 6px;
+    }
+
+    /* Таблица */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    /* Мелкие текстовые стили */
+    small {
+      font-size: 0.85em;
+      color: #666;
+    }
+
   </style>
 </head>
 <body>
   <header>
     <button class="burger" id="burger">☰</button>
+    <h1>Пример UI элементов</h1>
   </header>
 
-  <button id="agree">Согласиться и продолжить</button>
+  <main>
+    <section>
+      <h2>Кнопки</h2>
+      <div class="buttons">
+        <button class="btn-primary" id="agree">Согласиться</button>
+        <button class="btn-success">Успех</button>
+        <button class="btn-danger">Ошибка</button>
+        <button class="btn-warning">Внимание</button>
+        <button class="btn-info">Информация</button>
+        <button class="btn-light">Светлая</button>
+        <button class="btn-dark">Тёмная</button>
+        <button class="btn-outline">Контурная</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Плашки (карточки)</h2>
+      <div class="card card-primary">
+        <h3>Основная карточка</h3>
+        <p>Это пример карточки с основным цветом темы.</p>
+      </div>
+      <div class="card card-secondary">
+        <h3>Второстепенная карточка</h3>
+        <p>Карточка с нейтральным светлым фоном.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Текстовые стили</h2>
+      <p>Обычный текст на странице.</p>
+      <p class="text-muted">Это приглушённый (muted) текст, например для подсказок или мелких деталей.</p>
+      <p>Текст с <span class="text-highlight">выделением цветом темы</span>.</p>
+      <small>Мелкий текст, например, для примечаний или дат.</small>
+    </section>
+
+    <section>
+      <h2>Формы</h2>
+      <form>
+        <label for="name">Имя</label>
+        <input type="text" id="name" placeholder="Введите ваше имя" />
+
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="example@mail.com" />
+
+        <label for="message">Сообщение</label>
+        <textarea id="message" placeholder="Напишите что-нибудь"></textarea>
+
+        <label for="topic">Тема</label>
+        <select id="topic">
+          <option>Общий вопрос</option>
+          <option>Поддержка</option>
+          <option>Обратная связь</option>
+        </select>
+
+        <button type="submit" class="btn-primary" style="margin-top: 16px;">Отправить</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Списки</h2>
+      <ul>
+        <li>Пункт списка 1</li>
+        <li>Пункт списка 2</li>
+        <li>Пункт списка 3</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Таблица</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Роль</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Иван</td>
+            <td>Админ</td>
+            <td>Активен</td>
+          </tr>
+          <tr>
+            <td>Мария</td>
+            <td>Пользователь</td>
+            <td>Неактивен</td>
+          </tr>
+          <tr>
+            <td>Алексей</td>
+            <td>Модератор</td>
+            <td>Активен</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
@@ -88,7 +357,6 @@
     applyTheme();
     tg.onEvent('themeChanged', applyTheme);
 
-    // Бургер-меню просто для примера - тут нет меню
     document.getElementById('burger').addEventListener('click', () => {
       alert('Бургер-меню кликнуто');
     });
