@@ -8,12 +8,13 @@
   body, html {
     margin: 0; padding: 0; height: 100%;
     background:
-      linear-gradient(to right, #ccc 1px, transparent 1px),
-      linear-gradient(to bottom, #ccc 1px, transparent 1px);
-    background-size: 40px 40px; /* размер клеток сетки */
-    user-select: none; /* отключаем выделение текста */
+      linear-gradient(to right, #bbbbbb 1px, transparent 1px),
+      linear-gradient(to bottom, #bbbbbb 1px, transparent 1px);
+    background-size: 20px 20px; /* теперь клетки 20x20 — в два раза меньше */
+    user-select: none;
     overflow: hidden;
     font-family: Arial, sans-serif;
+    background-color: #e6e6e6; /* светлый серый фон */
   }
 
   .draggable {
@@ -53,10 +54,9 @@
 
     block.addEventListener('mousedown', e => {
       isDragging = true;
-      // позиция курсора внутри блока
       offsetX = e.clientX - block.getBoundingClientRect().left;
       offsetY = e.clientY - block.getBoundingClientRect().top;
-      block.style.zIndex = 1000; // поднять поверх
+      block.style.zIndex = 1000;
       block.style.transition = 'none';
     });
 
@@ -65,7 +65,6 @@
       let x = e.clientX - offsetX;
       let y = e.clientY - offsetY;
 
-      // Ограничения по экрану (чтобы не уйти за границы)
       const minX = 0;
       const minY = 0;
       const maxX = window.innerWidth - block.offsetWidth;
@@ -88,7 +87,6 @@
       }
     });
 
-    // Для сенсорных устройств (touch)
     block.addEventListener('touchstart', e => {
       e.preventDefault();
       const touch = e.touches[0];
