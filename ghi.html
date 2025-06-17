@@ -1,264 +1,103 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Пример для проверки темы Telegram WebApp</title>
-<style>
-  :root {
-    --tg-bg-color: #ffffff;
-    --tg-text-color: #000000;
-    --tg-button-color: #0088cc;
-    --tg-button-text-color: #ffffff;
-    --tg-link-color: #0088cc;
-    --tg-warning-color: #ffcc00;
-    --tg-danger-color: #d32f2f;
-    --tg-success-color: #2e7d32;
-    --tg-muted-text-color: #6a6a6a;
-    --tg-input-bg-color: #f0f0f0;
-    --tg-input-text-color: #000000;
-    --tg-border-color: #cccccc;
-  }
-
-  body {
-    margin: 0; padding: 16px;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--tg-bg-color);
-    color: var(--tg-text-color);
-    transition: background-color 0.3s, color 0.3s;
-  }
-
-  h1, h2, h3 {
-    margin-top: 1em;
-    margin-bottom: 0.4em;
-  }
-
-  a {
-    color: var(--tg-link-color);
-    text-decoration: none;
-    cursor: pointer;
-  }
-  a:hover {
-    text-decoration: underline;
-  }
-
-  /* Кнопки */
-  .btn {
-    display: inline-block;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 16px;
-    cursor: pointer;
-    border: none;
-    transition: filter 0.2s;
-    user-select: none;
-    margin: 6px 8px 6px 0;
-  }
-  .btn-primary {
-    background-color: var(--tg-button-color);
-    color: var(--tg-button-text-color);
-  }
-  .btn-primary:hover {
-    filter: brightness(1.1);
-  }
-
-  .btn-outline {
-    background-color: transparent;
-    color: var(--tg-button-color);
-    border: 2px solid var(--tg-button-color);
-  }
-  .btn-outline:hover {
-    background-color: var(--tg-button-color);
-    color: var(--tg-button-text-color);
-  }
-
-  .btn-danger {
-    background-color: var(--tg-danger-color);
-    color: #fff;
-  }
-  .btn-danger:hover {
-    filter: brightness(1.2);
-  }
-
-  .btn-success {
-    background-color: var(--tg-success-color);
-    color: #fff;
-  }
-  .btn-success:hover {
-    filter: brightness(1.2);
-  }
-
-  .btn-warning {
-    background-color: var(--tg-warning-color);
-    color: #000;
-  }
-  .btn-warning:hover {
-    filter: brightness(1.1);
-  }
-
-  /* Плашки */
-  .badge {
-    display: inline-block;
-    padding: 8px 16px;
-    border-radius: 12px;
-    font-weight: 600;
-    margin: 6px 8px 6px 0;
-    user-select: none;
-  }
-  .badge-primary {
-    background-color: var(--tg-button-color);
-    color: var(--tg-button-text-color);
-  }
-  .badge-success {
-    background-color: var(--tg-success-color);
-    color: #fff;
-  }
-  .badge-danger {
-    background-color: var(--tg-danger-color);
-    color: #fff;
-  }
-  .badge-warning {
-    background-color: var(--tg-warning-color);
-    color: #000;
-  }
-  .badge-muted {
-    background-color: var(--tg-border-color);
-    color: var(--tg-muted-text-color);
-  }
-
-  /* Текстовые стили */
-  .text-muted {
-    color: var(--tg-muted-text-color);
-  }
-  .text-inverse {
-    color: var(--tg-button-text-color);
-  }
-  .text-primary {
-    color: var(--tg-button-color);
-  }
-
-  /* Инпуты */
-  input[type="text"],
-  input[type="email"],
-  textarea {
-    width: 100%;
-    max-width: 400px;
-    padding: 10px;
-    margin: 8px 0 16px 0;
-    border: 1.5px solid var(--tg-border-color);
-    border-radius: 6px;
-    background-color: var(--tg-input-bg-color);
-    color: var(--tg-input-text-color);
-    font-size: 16px;
-    transition: border-color 0.3s;
-  }
-  input[type="text"]:focus,
-  input[type="email"]:focus,
-  textarea:focus {
-    outline: none;
-    border-color: var(--tg-button-color);
-  }
-
-  /* Чекбокс */
-  label.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
-    font-size: 16px;
-  }
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
-
-  /* Секция с рамкой */
-  .section {
-    border: 1px solid var(--tg-border-color);
-    border-radius: 10px;
-    padding: 16px;
-    margin-top: 24px;
-    max-width: 600px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>Цвета Telegram WebApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: sans-serif;
+      background-color: #fff;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #000;
+    }
+    .color-box {
+      width: 120px;
+      height: 120px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      user-select: none;
+      cursor: default;
+      text-align: center;
+    }
+    .label {
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: inherit;
+      word-break: break-word;
+    }
+  </style>
 </head>
 <body>
-
-<h1>Проверка темы Telegram WebApp</h1>
-
-<section class="section">
-  <h2>Кнопки</h2>
-  <button class="btn btn-primary">Основная</button>
-  <button class="btn btn-outline">Обводка</button>
-  <button class="btn btn-success">Успех</button>
-  <button class="btn btn-danger">Ошибка</button>
-  <button class="btn btn-warning">Внимание</button>
-</section>
-
-<section class="section">
-  <h2>Плашки</h2>
-  <span class="badge badge-primary">Основная</span>
-  <span class="badge badge-success">Успех</span>
-  <span class="badge badge-danger">Ошибка</span>
-  <span class="badge badge-warning">Внимание</span>
-  <span class="badge badge-muted">Приглушённая</span>
-</section>
-
-<section class="section">
-  <h2>Текстовые стили</h2>
-  <p>Обычный текст.</p>
-  <p class="text-muted">Приглушённый текст</p>
-  <p class="text-primary">Цвет текста кнопки</p>
-  <p class="text-inverse" style="background-color: var(--tg-button-color); padding: 8px; border-radius: 4px;">Инвертированный текст (для тёмного фона)</p>
-  <a href="#">Ссылка</a>
-</section>
-
-<section class="section">
-  <h2>Формы</h2>
-  <label for="name">Имя:</label><br/>
-  <input type="text" id="name" placeholder="Введите имя" />
-
-  <label for="email">Email:</label><br/>
-  <input type="email" id="email" placeholder="email@example.com" />
-
-  <label for="message">Сообщение:</label><br/>
-  <textarea id="message" rows="4" placeholder="Введите сообщение"></textarea>
-
-  <label class="checkbox-label">
-    <input type="checkbox" id="agree" />
-    Я принимаю условия
-  </label>
-</section>
-
-</body>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
   const tg = window.Telegram.WebApp;
   tg.ready();
 
-  function applyTheme() {
-    const root = document.documentElement;
-    root.style.setProperty('--tg-bg-color', tg.themeParams.bg_color || '#ffffff');
-    root.style.setProperty('--tg-text-color', tg.themeParams.text_color || '#000000');
-    root.style.setProperty('--tg-button-color', tg.themeParams.button_color || '#0088cc');
-    root.style.setProperty('--tg-button-text-color', tg.themeParams.button_text_color || '#ffffff');
-    root.style.setProperty('--tg-link-color', tg.themeParams.link_color || '#0088cc');
+  function renderColors() {
+    document.body.innerHTML = ''; // очистить
 
-    // Дополнительные цвета (если в теме есть — подставим, иначе дефолт)
-    root.style.setProperty('--tg-warning-color', tg.themeParams.warning_color || '#ffcc00');
-    root.style.setProperty('--tg-danger-color', tg.themeParams.danger_color || '#d32f2f');
-    root.style.setProperty('--tg-success-color', tg.themeParams.success_color || '#2e7d32');
-    root.style.setProperty('--tg-muted-text-color', tg.themeParams.muted_text_color || '#6a6a6a');
-    root.style.setProperty('--tg-input-bg-color', tg.themeParams.input_bg_color || '#f0f0f0');
-    root.style.setProperty('--tg-input-text-color', tg.themeParams.input_text_color || '#000000');
-    root.style.setProperty('--tg-border-color', tg.themeParams.border_color || '#cccccc');
+    const theme = tg.themeParams || {};
+
+    // Если параметров нет, добавить заглушку
+    if (Object.keys(theme).length === 0) {
+      const noData = document.createElement('div');
+      noData.textContent = 'Цветовые параметры темы недоступны';
+      noData.style.fontSize = '18px';
+      noData.style.color = '#333';
+      document.body.appendChild(noData);
+      return;
+    }
+
+    for (const [key, color] of Object.entries(theme)) {
+      const box = document.createElement('div');
+      box.className = 'color-box';
+      box.style.backgroundColor = color;
+
+      // Определим контрастный цвет текста (чёрный или белый)
+      function getContrastYIQ(hexcolor){
+        hexcolor = hexcolor.replace('#', '');
+        if(hexcolor.length === 3){
+          hexcolor = hexcolor.split('').map(c => c+c).join('');
+        }
+        const r = parseInt(hexcolor.substr(0,2),16);
+        const g = parseInt(hexcolor.substr(2,2),16);
+        const b = parseInt(hexcolor.substr(4,2),16);
+        const yiq = ((r*299)+(g*587)+(b*114))/1000;
+        return (yiq >= 128) ? '#000000' : '#FFFFFF';
+      }
+
+      box.style.color = getContrastYIQ(color);
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = key + "\n" + color;
+
+      box.appendChild(label);
+      document.body.appendChild(box);
+    }
   }
 
-  applyTheme();
-  tg.onEvent('themeChanged', applyTheme);
+  renderColors();
+
+  tg.onEvent('themeChanged', renderColors);
 </script>
+
+</body>
 </html>
