@@ -1,167 +1,102 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Перемещение блоков на сетке</title>
-<style>
-  :root {
-    --tg-bg-color: #ffffff;
-    --tg-grid-line-color: #e0e0e0; /* чуть темнее фона */
-  }
+  <meta charset="UTF-8" />
+  <title>Пример кнопок и цветов</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --tg-bg-color: #ffffff;
+      --tg-text-color: #000000;
+      --tg-button-color: #0088cc;
+      --tg-button-text-color: #ffffff;
+    }
 
-  body, html {
-    margin: 0; padding: 0; height: 100%;
-    background-color: var(--tg-bg-color);
-    background-image:
-      linear-gradient(to right, var(--tg-grid-line-color) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--tg-grid-line-color) 1px, transparent 1px);
-    background-size: 5px 5px;
-    user-select: none;
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-  }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: var(--tg-bg-color);
+      color: var(--tg-text-color);
+      transition: background-color 0.3s, color 0.3s;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
 
-  .draggable {
-    position: absolute;
-    width: 120px;
-    height: 80px;
-    background: #0088cccc;
-    border: 2px solid #005577;
-    border-radius: 8px;
-    cursor: grab;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    transition: box-shadow 0.2s;
-  }
-  .draggable:active {
-    cursor: grabbing;
-    box-shadow: 0 8px 12px rgba(0,0,0,0.4);
-  }
-</style>
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 12px 16px;
+      background-color: var(--tg-bg-color);
+      display: flex;
+      justify-content: flex-start;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      z-index: 1000;
+    }
+
+    .burger {
+      font-size: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--tg-text-color);
+    }
+
+    button#agree {
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      background-color: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+
+    button#agree:hover {
+      filter: brightness(1.1);
+    }
+  </style>
 </head>
 <body>
+  <header>
+    <button class="burger" id="burger">☰</button>
+  </header>
 
-<div class="draggable" style="top: 40px; left: 40px;">Блок 1</div>
-<div class="draggable" style="top: 120px; left: 200px;">Блок 2</div>
-<div class="draggable" style="top: 220px; left: 100px;">Блок 3</div>
+  <button id="agree">Согласиться и продолжить</button>
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>
-  const tg = window.Telegram?.WebApp;
-  if (tg) {
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    const tg = window.Telegram.WebApp;
     tg.ready();
 
     function applyTheme() {
       const root = document.documentElement;
       root.style.setProperty('--tg-bg-color', tg.themeParams.bg_color || '#ffffff');
-
-      // вычислим цвет линии немного темнее фона
-      // простой вариант: если фон светлый — делаем #e0e0e0, если темный — #2a2a2a
-      const bg = tg.themeParams.bg_color || '#ffffff';
-
-      function isColorLight(color) {
-        // простая проверка яркости цвета в hex (#rrggbb)
-        const r = parseInt(color.substr(1,2),16);
-        const g = parseInt(color.substr(3,2),16);
-        const b = parseInt(color.substr(5,2),16);
-        // формула яркости
-        return (r*0.299 + g*0.587 + b*0.114) > 186;
-      }
-
-      const lineColor = isColorLight(bg) ? '#e0e0e0' : '#2a2a2a';
-      root.style.setProperty('--tg-grid-line-color', lineColor);
+      root.style.setProperty('--tg-text-color', tg.themeParams.text_color || '#000000');
+      root.style.setProperty('--tg-button-color', tg.themeParams.button_color || '#0088cc');
+      root.style.setProperty('--tg-button-text-color', tg.themeParams.button_text_color || '#ffffff');
     }
 
     applyTheme();
     tg.onEvent('themeChanged', applyTheme);
-  }
 
-  // Далее — твой код drag'n'drop
-  const draggables = document.querySelectorAll('.draggable');
-
-  draggables.forEach(block => {
-    let offsetX, offsetY;
-    let isDragging = false;
-
-    block.addEventListener('mousedown', e => {
-      isDragging = true;
-      offsetX = e.clientX - block.getBoundingClientRect().left;
-      offsetY = e.clientY - block.getBoundingClientRect().top;
-      block.style.zIndex = 1000;
-      block.style.transition = 'none';
+    // Бургер-меню просто для примера - тут нет меню
+    document.getElementById('burger').addEventListener('click', () => {
+      alert('Бургер-меню кликнуто');
     });
 
-    document.addEventListener('mousemove', e => {
-      if (!isDragging) return;
-      let x = e.clientX - offsetX;
-      let y = e.clientY - offsetY;
-
-      const minX = 0;
-      const minY = 0;
-      const maxX = window.innerWidth - block.offsetWidth;
-      const maxY = window.innerHeight - block.offsetHeight;
-
-      if (x < minX) x = minX;
-      if (y < minY) y = minY;
-      if (x > maxX) x = maxX;
-      if (y > maxY) y = maxY;
-
-      block.style.left = x + 'px';
-      block.style.top = y + 'px';
+    document.getElementById('agree').addEventListener('click', () => {
+      tg.showAlert('Вы приняли условия!');
+      tg.close();
     });
-
-    document.addEventListener('mouseup', e => {
-      if (isDragging) {
-        isDragging = false;
-        block.style.zIndex = '';
-        block.style.transition = '';
-      }
-    });
-
-    block.addEventListener('touchstart', e => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      isDragging = true;
-      offsetX = touch.clientX - block.getBoundingClientRect().left;
-      offsetY = touch.clientY - block.getBoundingClientRect().top;
-      block.style.zIndex = 1000;
-      block.style.transition = 'none';
-    });
-
-    document.addEventListener('touchmove', e => {
-      if (!isDragging) return;
-      const touch = e.touches[0];
-      let x = touch.clientX - offsetX;
-      let y = touch.clientY - offsetY;
-
-      const minX = 0;
-      const minY = 0;
-      const maxX = window.innerWidth - block.offsetWidth;
-      const maxY = window.innerHeight - block.offsetHeight;
-
-      if (x < minX) x = minX;
-      if (y < minY) y = minY;
-      if (x > maxX) x = maxX;
-      if (y > maxY) y = maxY;
-
-      block.style.left = x + 'px';
-      block.style.top = y + 'px';
-    }, { passive: false });
-
-    document.addEventListener('touchend', e => {
-      if (isDragging) {
-        isDragging = false;
-        block.style.zIndex = '';
-        block.style.transition = '';
-      }
-    });
-  });
-</script>
-
+  </script>
 </body>
 </html>
