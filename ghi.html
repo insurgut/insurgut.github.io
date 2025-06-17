@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Выбор эмодзи статуса</title>
+  <title>Установка эмодзи статуса</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -69,7 +69,7 @@
   const tg = window.Telegram.WebApp;
   tg.ready();
 
-  // Список эмодзи для кнопок — можно поменять по желанию
+  // Эмодзи для кнопок
   const emojiList = ['🙂', '😎', '🔥', '💡', '🎉', '🌟', '🚀'];
 
   function renderColors() {
@@ -108,8 +108,8 @@
       emojiBtn.textContent = emojiList[i] || '🙂';
 
       emojiBtn.addEventListener('click', () => {
-        tg.showAlert(`Вы выбрали статус: ${emojiBtn.textContent}`);
-        tg.sendData(emojiBtn.textContent);
+        // Вызов установки эмодзи статуса через WebApp API
+        tg.setEmojiStatus(emojiBtn.textContent);
       });
 
       box.appendChild(emojiBtn);
