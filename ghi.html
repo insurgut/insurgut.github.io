@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Telegram WebApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <div id="content">Привет из Telegram WebApp!</div>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+
+    // Применяем цвета темы Telegram
+    function applyTheme() {
+      const bg = tg.themeParams.bg_color || '#ffffff';
+      const textColor = tg.themeParams.text_color || '#000000';
+
+      document.body.style.backgroundColor = bg;
+      document.body.style.color = textColor;
+    }
+
+    applyTheme();
+
+    // Слушаем смену темы
+    Telegram.WebApp.onEvent('themeChanged', applyTheme);
+  </script>
+</body>
+</html>
