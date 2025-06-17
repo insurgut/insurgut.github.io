@@ -5,13 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Перемещение блоков на сетке</title>
 <style>
+  :root {
+    --tg-bg-color: #ffffff;
+    --tg-grid-line-color: #e0e0e0; /* чуть темнее фона */
+  }
+
   body, html {
     margin: 0; padding: 0; height: 100%;
-    background-color: #ffffff; /* фон белый */
+    background-color: var(--tg-bg-color);
     background-image:
-      linear-gradient(to right, #e0e0e0 1px, transparent 1px),
-      linear-gradient(to bottom, #e0e0e0 1px, transparent 1px);
-    background-size: 20px 20px; /* размер клеток */
+      linear-gradient(to right, var(--tg-grid-line-color) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--tg-grid-line-color) 1px, transparent 1px);
+    background-size: 20px 20px;
     user-select: none;
     overflow: hidden;
     font-family: Arial, sans-serif;
@@ -45,7 +50,38 @@
 <div class="draggable" style="top: 120px; left: 200px;">Блок 2</div>
 <div class="draggable" style="top: 220px; left: 100px;">Блок 3</div>
 
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.ready();
+
+    function applyTheme() {
+      const root = document.documentElement;
+      root.style.setProperty('--tg-bg-color', tg.themeParams.bg_color || '#ffffff');
+
+      // вычислим цвет линии немного темнее фона
+      // простой вариант: если фон светлый — делаем #e0e0e0, если темный — #2a2a2a
+      const bg = tg.themeParams.bg_color || '#ffffff';
+
+      function isColorLight(color) {
+        // простая проверка яркости цвета в hex (#rrggbb)
+        const r = parseInt(color.substr(1,2),16);
+        const g = parseInt(color.substr(3,2),16);
+        const b = parseInt(color.substr(5,2),16);
+        // формула яркости
+        return (r*0.299 + g*0.587 + b*0.114) > 186;
+      }
+
+      const lineColor = isColorLight(bg) ? '#e0e0e0' : '#2a2a2a';
+      root.style.setProperty('--tg-grid-line-color', lineColor);
+    }
+
+    applyTheme();
+    tg.onEvent('themeChanged', applyTheme);
+  }
+
+  // Далее — твой код drag'n'drop
   const draggables = document.querySelectorAll('.draggable');
 
   draggables.forEach(block => {
