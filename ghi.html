@@ -69,8 +69,11 @@
   const tg = window.Telegram.WebApp;
   tg.ready();
 
-  // Эмодзи для кнопок
+  // Обычные эмодзи для примера
   const emojiList = ['🙂', '😎', '🔥', '💡', '🎉', '🌟', '🚀'];
+
+  // Кастомные эмодзи из темы (если есть)
+  const customEmojiIds = tg.themeParams?.sticker_set_custom_emoji_ids || [];
 
   function renderColors() {
     document.body.innerHTML = '';
@@ -105,15 +108,26 @@
 
       const emojiBtn = document.createElement('button');
       emojiBtn.className = 'emoji-btn';
-      emojiBtn.textContent = emojiList[i] || '🙂';
 
-      emojiBtn.addEventListener('click', () => {
-        // Вызов установки эмодзи статуса через WebApp API
-        tg.setEmojiStatus(emojiBtn.textContent);
-      });
+      // Если есть кастомный эмодзи для этого индекса — покажем его
+      if (customEmojiIds[i]) {
+        // Это ID кастомного эмодзи, но визуально поставить нельзя, показываем заглушку
+        emojiBtn.textContent = '⭐'; // Можно заменить на что-то подходящее
+        emojiBtn.title = `Кастомный эмодзи ID: ${customEmojiIds[i]}`;
+        emojiBtn.addEventListener('click', () => {
+          tg.setEmojiStatusCustomEmojiId(customEmojiIds[i], 3600); // 1 час
+        });
+      } else {
+        // Показываем обычный эмодзи
+        const emoji = emojiList[i] || '🙂';
+        emojiBtn.textContent = emoji;
+        emojiBtn.title = `Установить статус: ${emoji}`;
+        emojiBtn.addEventListener('click', () => {
+          tg.setEmojiStatus(emoji, 3600); // 1 час
+        });
+      }
 
       box.appendChild(emojiBtn);
-
       document.body.appendChild(box);
     });
   }
