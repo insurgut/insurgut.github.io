@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <title>Telegram WebApp</title>
@@ -9,36 +9,62 @@
       margin: 0;
       padding: 0;
       font-family: sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       height: 100vh;
-      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: var(--tg-bg-color, #ffffff);
+      color: var(--tg-text-color, #000000);
       transition: background-color 0.3s, color 0.3s;
+    }
+
+    #container {
+      text-align: center;
+    }
+
+    #btn {
+      margin-top: 20px;
+      padding: 10px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: var(--tg-button-color, #0088cc);
+      color: var(--tg-button-text-color, #ffffff);
+      transition: background-color 0.2s;
+    }
+
+    #btn:hover {
+      filter: brightness(1.1);
     }
   </style>
 </head>
 <body>
-  <div id="content">Привет из Telegram WebApp!</div>
+  <div id="container">
+    <div>Привет из Telegram WebApp!</div>
+    <button id="btn">Нажми меня</button>
+  </div>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
 
-    // Применяем цвета темы Telegram
     function applyTheme() {
-      const bg = tg.themeParams.bg_color || '#ffffff';
-      const textColor = tg.themeParams.text_color || '#000000';
-
-      document.body.style.backgroundColor = bg;
-      document.body.style.color = textColor;
+      const root = document.documentElement;
+      root.style.setProperty('--tg-bg-color', tg.themeParams.bg_color || '#ffffff');
+      root.style.setProperty('--tg-text-color', tg.themeParams.text_color || '#000000');
+      root.style.setProperty('--tg-button-color', tg.themeParams.button_color || '#0088cc');
+      root.style.setProperty('--tg-button-text-color', tg.themeParams.button_text_color || '#ffffff');
     }
 
     applyTheme();
-
-    // Слушаем смену темы
     Telegram.WebApp.onEvent('themeChanged', applyTheme);
+
+    document.getElementById('btn').addEventListener('click', () => {
+      tg.showAlert('Кнопка нажата!');
+    });
   </script>
 </body>
 </html>
