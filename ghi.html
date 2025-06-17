@@ -1,218 +1,133 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Пользовательское соглашение</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    :root {
-      --tg-bg-color: #ffffff;
-      --tg-text-color: #000000;
-      --tg-button-color: #0088cc;
-      --tg-button-text-color: #ffffff;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
-      background-color: var(--tg-bg-color);
-      color: var(--tg-text-color);
-      transition: background-color 0.3s, color 0.3s;
-    }
-    header {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      padding: 12px 16px;
-      background-color: var(--tg-bg-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      z-index: 1000;
-    }
-    .burger {
-      font-size: 24px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--tg-text-color);
-    }
-    nav {
-      position: absolute;
-      top: 50px;
-      left: 0;
-      background: var(--tg-bg-color);
-      width: 100%;
-      display: none;
-      flex-direction: column;
-      border-top: 1px solid rgba(0,0,0,0.1);
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    nav a {
-      padding: 12px 16px;
-      text-decoration: none;
-      color: var(--tg-text-color);
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-      font-weight: 600;
-    }
-    nav.show {
-      display: flex;
-    }
-    main {
-      padding: 80px 16px 100px;
-      max-width: 800px;
-      margin: auto;
-      line-height: 1.6em;
-    }
-    h2 {
-      margin-top: 32px;
-      font-size: 22px;
-      font-weight: 700;
-    }
-    p {
-      margin-top: 12px;
-      text-align: justify;
-    }
-    ul {
-      margin-top: 8px;
-      margin-left: 20px;
-    }
-    ul li {
-      margin-bottom: 6px;
-    }
-    .agree-btn {
-      position: fixed;
-      bottom: 0; left: 0;
-      width: 100%;
-      padding: 16px;
-      background-color: var(--tg-bg-color);
-      border-top: 1px solid rgba(0,0,0,0.05);
-      display: flex;
-      justify-content: center;
-      box-shadow: 0 -2px 6px rgba(0,0,0,0.05);
-      z-index: 1000;
-    }
-    button#agree {
-      padding: 14px 28px;
-      font-size: 16px;
-      font-weight: 700;
-      border: none;
-      border-radius: 8px;
-      background-color: var(--tg-button-color);
-      color: var(--tg-button-text-color);
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    button#agree:hover {
-      filter: brightness(1.1);
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Перемещение блоков на сетке</title>
+<style>
+  body, html {
+    margin: 0; padding: 0; height: 100%;
+    background:
+      linear-gradient(to right, #ccc 1px, transparent 1px),
+      linear-gradient(to bottom, #ccc 1px, transparent 1px);
+    background-size: 40px 40px; /* размер клеток сетки */
+    user-select: none; /* отключаем выделение текста */
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
+
+  .draggable {
+    position: absolute;
+    width: 120px;
+    height: 80px;
+    background: #0088cccc;
+    border: 2px solid #005577;
+    border-radius: 8px;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: box-shadow 0.2s;
+  }
+  .draggable:active {
+    cursor: grabbing;
+    box-shadow: 0 8px 12px rgba(0,0,0,0.4);
+  }
+</style>
 </head>
 <body>
-  <header>
-    <button class="burger" id="burger">☰</button>
-  </header>
 
-  <nav id="menu">
-    <a href="#intro">Введение</a>
-    <a href="#privacy">Конфиденциальность</a>
-    <a href="#terms">Условия использования</a>
-    <a href="#rights">Права и обязанности</a>
-    <a href="#liability">Ограничение ответственности</a>
-    <a href="#intellectual">Интеллектуальная собственность</a>
-    <a href="#termination">Прекращение использования</a>
-    <a href="#changes">Изменения соглашения</a>
-    <a href="#contact">Контактная информация</a>
-  </nav>
+<div class="draggable" style="top: 40px; left: 40px;">Блок 1</div>
+<div class="draggable" style="top: 120px; left: 200px;">Блок 2</div>
+<div class="draggable" style="top: 220px; left: 100px;">Блок 3</div>
 
-  <main>
-    <h2 id="intro">1. Введение</h2>
-    <p>Добро пожаловать в наше приложение. Настоящее Пользовательское соглашение (далее – «Соглашение») определяет условия использования вами нашего программного продукта, веб-сайта и связанных сервисов (далее – «Сервис»). Пожалуйста, внимательно ознакомьтесь с данным документом перед использованием Сервиса.</p>
-    <p>Используя наш Сервис, вы подтверждаете, что ознакомились с условиями данного Соглашения, полностью их понимаете и принимаете.</p>
+<script>
+  const draggables = document.querySelectorAll('.draggable');
 
-    <h2 id="privacy">2. Конфиденциальность</h2>
-    <p>Мы уважаем вашу конфиденциальность и обязуемся не собирать и не использовать ваши личные данные без вашего согласия. Все персональные данные обрабатываются в соответствии с действующим законодательством о защите персональных данных.</p>
-    <p>Мы можем использовать технические средства для сбора анонимной статистики с целью улучшения качества Сервиса. Эти данные не позволяют идентифицировать конкретного пользователя.</p>
+  draggables.forEach(block => {
+    let offsetX, offsetY;
+    let isDragging = false;
 
-    <h2 id="terms">3. Условия использования</h2>
-    <p>Пользователь обязуется использовать Сервис в законных целях и не предпринимать действий, которые могут нарушать права других пользователей или мешать работе Сервиса.</p>
-    <ul>
-      <li>Запрещается использовать Сервис для размещения незаконного, оскорбительного или вводящего в заблуждение контента.</li>
-      <li>Пользователь несет ответственность за сохранность своих учетных данных и обязуется не передавать их третьим лицам.</li>
-      <li>Мы оставляем за собой право временно или постоянно ограничить доступ к Сервису пользователям, нарушающим данные условия.</li>
-    </ul>
-
-    <h2 id="rights">4. Права и обязанности сторон</h2>
-    <p><strong>Пользователь вправе:</strong></p>
-    <ul>
-      <li>Использовать Сервис в соответствии с условиями данного Соглашения.</li>
-      <li>Обращаться в службу поддержки для решения вопросов, связанных с использованием Сервиса.</li>
-    </ul>
-    <p><strong>Пользователь обязуется:</strong></p>
-    <ul>
-      <li>Соблюдать условия данного Соглашения.</li>
-      <li>Не использовать Сервис для противоправных действий.</li>
-      <li>Не передавать доступ третьим лицам.</li>
-    </ul>
-    <p><strong>Мы обязуемся:</strong></p>
-    <ul>
-      <li>Обеспечивать доступность Сервиса, за исключением случаев технических работ или форс-мажора.</li>
-      <li>Сохранять конфиденциальность ваших персональных данных в рамках политики конфиденциальности.</li>
-    </ul>
-
-    <h2 id="liability">5. Ограничение ответственности</h2>
-    <p>Мы не несем ответственности за любые убытки, прямые или косвенные, возникшие в результате использования или невозможности использования Сервиса, включая потерю данных, доходов или деловой репутации.</p>
-    <p>Сервис предоставляется «как есть» без каких-либо гарантий, явных или подразумеваемых.</p>
-
-    <h2 id="intellectual">6. Интеллектуальная собственность</h2>
-    <p>Все материалы, контент, дизайн и программное обеспечение, используемые в Сервисе, являются нашей собственностью или принадлежат третьим лицам с соответствующими правами. Пользователю запрещается копировать, распространять или использовать указанные материалы без разрешения правообладателя.</p>
-
-    <h2 id="termination">7. Прекращение использования</h2>
-    <p>Мы вправе прекратить или приостановить доступ пользователя к Сервису без предварительного уведомления в случае нарушения условий данного Соглашения или по другим основаниям, предусмотренным законодательством.</p>
-
-    <h2 id="changes">8. Изменения соглашения</h2>
-    <p>Мы оставляем за собой право в любое время вносить изменения в настоящее Соглашение. Изменения вступают в силу с момента их публикации на данной странице. Продолжая использовать Сервис после внесения изменений, пользователь подтверждает согласие с обновленными условиями.</p>
-
-    <h2 id="contact">9. Контактная информация</h2>
-    <p>Если у вас возникли вопросы или предложения по поводу данного Соглашения или работы Сервиса, вы можете связаться с нами по электронной почте: support@example.com</p>
-
-    <p><em>Дата последнего обновления: 17 июня 2025 г.</em></p>
-  </main>
-
-  <div class="agree-btn">
-    <button id="agree">Согласиться и продолжить</button>
-  </div>
-
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-
-    function applyTheme() {
-      const root = document.documentElement;
-      root.style.setProperty('--tg-bg-color', tg.themeParams.bg_color || '#ffffff');
-      root.style.setProperty('--tg-text-color', tg.themeParams.text_color || '#000000');
-      root.style.setProperty('--tg-button-color', tg.themeParams.button_color || '#0088cc');
-      root.style.setProperty('--tg-button-text-color', tg.themeParams.button_text_color || '#ffffff');
-    }
-
-    applyTheme();
-    tg.onEvent('themeChanged', applyTheme);
-
-    // Бургер-меню
-    const burger = document.getElementById('burger');
-    const menu = document.getElementById('menu');
-    burger.addEventListener('click', () => {
-      menu.classList.toggle('show');
+    block.addEventListener('mousedown', e => {
+      isDragging = true;
+      // позиция курсора внутри блока
+      offsetX = e.clientX - block.getBoundingClientRect().left;
+      offsetY = e.clientY - block.getBoundingClientRect().top;
+      block.style.zIndex = 1000; // поднять поверх
+      block.style.transition = 'none';
     });
 
-    // Кнопка согласия
-    document.getElementById('agree').addEventListener('click', () => {
-      tg.showAlert('Вы приняли условия!');
-      tg.close(); // Закрыть WebApp (по желанию)
+    document.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      let x = e.clientX - offsetX;
+      let y = e.clientY - offsetY;
+
+      // Ограничения по экрану (чтобы не уйти за границы)
+      const minX = 0;
+      const minY = 0;
+      const maxX = window.innerWidth - block.offsetWidth;
+      const maxY = window.innerHeight - block.offsetHeight;
+
+      if (x < minX) x = minX;
+      if (y < minY) y = minY;
+      if (x > maxX) x = maxX;
+      if (y > maxY) y = maxY;
+
+      block.style.left = x + 'px';
+      block.style.top = y + 'px';
     });
-  </script>
+
+    document.addEventListener('mouseup', e => {
+      if (isDragging) {
+        isDragging = false;
+        block.style.zIndex = '';
+        block.style.transition = '';
+      }
+    });
+
+    // Для сенсорных устройств (touch)
+    block.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      isDragging = true;
+      offsetX = touch.clientX - block.getBoundingClientRect().left;
+      offsetY = touch.clientY - block.getBoundingClientRect().top;
+      block.style.zIndex = 1000;
+      block.style.transition = 'none';
+    });
+
+    document.addEventListener('touchmove', e => {
+      if (!isDragging) return;
+      const touch = e.touches[0];
+      let x = touch.clientX - offsetX;
+      let y = touch.clientY - offsetY;
+
+      const minX = 0;
+      const minY = 0;
+      const maxX = window.innerWidth - block.offsetWidth;
+      const maxY = window.innerHeight - block.offsetHeight;
+
+      if (x < minX) x = minX;
+      if (y < minY) y = minY;
+      if (x > maxX) x = maxX;
+      if (y > maxY) y = maxY;
+
+      block.style.left = x + 'px';
+      block.style.top = y + 'px';
+    }, { passive: false });
+
+    document.addEventListener('touchend', e => {
+      if (isDragging) {
+        isDragging = false;
+        block.style.zIndex = '';
+        block.style.transition = '';
+      }
+    });
+  });
+</script>
+
 </body>
 </html>
