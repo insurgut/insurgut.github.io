@@ -16,7 +16,7 @@
       --button-bg: #80c64c;
       --button-hover: #74b348;
     }
-    body { margin:0; font-family:"Segoe UI",sans-serif; background:var(--bg-color); color:var(--text-color); }
+    body { margin:0; font-family:"Segoe UI",sans-serif; background:var(--bg-color); color:var(--text-color); font-size: 100%; }
     .wrapper, .container { max-width:500px; margin:30px auto; padding:30px 25px; box-sizing:border-box; }
     h2 { font-size:20px; margin-bottom:15px; text-align:center; }
     .info-title, .section-title { color:var(--accent); font-size:14px; margin:25px 0 15px; }
@@ -41,18 +41,31 @@
     .page.active { display:block; }
     .passport-icon { width:60px; height:60px; background:#3c96e8; border-radius:50%; margin:15px auto; display:flex; align-items:center; justify-content:center; }
     .description { text-align:center; font-size:14px; color:var(--placeholder); line-height:1.6; margin-bottom:20px; }
+
+    @media (max-width: 600px) {
+      body { font-size: 105%; }
+      input[type="text"] { font-size: 15px; }
+      .authorize-btn, .save-button { font-size: 15px; padding: 13px; }
+      .info-label, .label { font-size: 14px; }
+      .info-placeholder-x { font-size: 15px; }
+      .description { font-size: 15px; }
+    }
   </style>
 </head>
 <body>
   <script>
-    // Инициализация Telegram Web App
     Telegram.WebApp.ready();
     const theme = Telegram.WebApp.themeParams;
-    // Применяем тему из Telegram
     if(theme.bg_color) document.documentElement.style.setProperty('--bg-color', theme.bg_color);
     if(theme.text_color) document.documentElement.style.setProperty('--text-color', theme.text_color);
     if(theme.secondary_bg_color) document.documentElement.style.setProperty('--border', theme.secondary_bg_color);
+    if(theme.hint_color) document.documentElement.style.setProperty('--muted-text', theme.hint_color);
+    if(theme.link_color) document.documentElement.style.setProperty('--accent', theme.link_color);
+    if(theme.button_color) document.documentElement.style.setProperty('--button-bg', theme.button_color);
+    if(theme.button_text_color) document.documentElement.style.setProperty('--text-color', theme.button_text_color);
   </script>
+  <!-- остальной HTML без изменений -->
+
 
   <!-- Page 1 -->
   <div id="page1" class="page active">
