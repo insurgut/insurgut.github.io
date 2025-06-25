@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Telegram Bot sender</title>
+</head>
+<body>
+<h2>Отправить сообщение с кнопкой через бота</h2>
+
+<label>Введите chat_id пользователя:
+  <input type="text" id="chatId" placeholder="chat_id" />
+</label><br /><br />
+
+<button id="sendBtn">Отправить сообщение</button>
+
+<script>
+const token = '8112715154:AAG8UTvBi79BvqBB4Cqob95oYgJxbXpgjiY'; // Вставь сюда токен
+const btn = document.getElementById('sendBtn');
+
+btn.onclick = () => {
+  const chatId = document.getElementById('chatId').value.trim();
+  if(!chatId) {
+    alert('Введите chat_id пользователя!');
+    return;
+  }
+
+  const message = 'Пожалуйста, подайте заявку или откройте форму по кнопке ниже:';
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+
+  const data = {
+    chat_id: chatId,
+    text: message,
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "Открыть форму заявки",
+            url: "http://t.me/shelladderBot/FormFilling"
+          }
+        ]
+      ]
+    }
+  };
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.ok) {
+      alert('Сообщение отправлено!');
+    } else {
+      alert('Ошибка: ' + JSON.stringify(data));
+    }
+  })
+  .catch(err => alert('Ошибка: ' + err));
+};
+</script>
+</body>
+</html>
