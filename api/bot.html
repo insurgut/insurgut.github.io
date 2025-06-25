@@ -30,7 +30,7 @@
     const apiUrl = `https://api.telegram.org/bot${token}`;
     let lastUpdateId = 0;
 
-    function generateToken(length = 155) {
+    function generateToken(length = 500) {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
       let result = '';
       for (let i = 0; i < length; i++) {
@@ -104,7 +104,7 @@
 
                 const payload = {
                   chat_id: chatId,
-                  text: `🔐 Сгенерирован токен для <b>${target}</b>:\n\n<code>${tokenGenerated}</code>`,
+                  text: `🔐 Сгенерирован токен для <b>${target}</b>:\n\n-----BEGIN REFERCH KEY-----<code>${tokenGenerated}</code>-----END REFERCH KEY-----`,
                   parse_mode: 'HTML'
                 };
 
