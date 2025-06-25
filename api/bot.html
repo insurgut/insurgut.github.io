@@ -3,19 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <title>Проверка /start</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #0f0;
+      text-align: center;
+      padding-top: 100px;
+    }
+    h2 {
+      font-size: 48px;
+      margin-bottom: 40px;
+    }
+    #status {
+      font-size: 32px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h2>Проверка Telegram на команду /start</h2>
-  <p>Статус: <span id="status">Ожидание...</span></p>
+  <h2>Мониторинг Telegram на /start</h2>
+  <div>Статус: <span id="status">Ожидание команды...</span></div>
 
   <script>
     const token = '8112715154:AAG8UTvBi79BvqBB4Cqob95oYgJxbXpgjiY';
-    const apiUrl = `https://api.telegram.org/bot${token}/getUpdates`;
+    const apiUrl = `https://api.telegram.org/bot${token}`;
     let lastUpdateId = 0;
 
     async function checkTelegramStart() {
       try {
-        const res = await fetch(`${apiUrl}?offset=${lastUpdateId + 1}`);
+        const res = await fetch(`${apiUrl}/getUpdates?offset=${lastUpdateId + 1}`);
         const data = await res.json();
 
         if (data.ok && data.result.length > 0) {
@@ -24,7 +41,32 @@
             const message = update.message;
 
             if (message && message.text === '/start') {
-              document.getElementById('status').textContent = `Обнаружен /start от @${message.from.username || 'пользователя'} (ID: ${message.from.id})`;
+              const chatId = message.chat.id;
+              document.getElementById('status').textContent = `Обнаружен /start от @${message.from.username || 'пользователя'} (ID: ${chatId})`;
+
+              // Отправка развернутого сообщения
+              const payload = {
+                chat_id: chatId,
+                text: `Здравствуйте!\n\nВы находитесь в официальном Telegram-боте системы подачи заявок. Мы работаем исключительно в рамках действующего законодательства. Вся передаваемая информация используется строго по назначению и не передаётся третьим лицам.\n\nЕсли вы хотите подать заявку, пожалуйста, нажмите кнопку ниже, чтобы открыть защищённую форму.\n\n⚠️ Заполнение формы является обязательным этапом, даже если вы уже ранее подавали заявку. Спасибо за понимание!`,
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      {
+                        text: 'Открыть форму подачи заявки',
+                        url: 'http://t.me/shelladderBot/FormFilling'
+                      }
+                    ]
+                  ]
+                }
+              };
+
+              await fetch(`${apiUrl}/sendMessage`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+              });
             }
           }
         }
