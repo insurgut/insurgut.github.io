@@ -1,64 +1,40 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<title>Telegram Bot sender</title>
+  <meta charset="UTF-8" />
+  <title>Проверка /start</title>
 </head>
 <body>
-<h2>Отправить сообщение с кнопкой через бота</h2>
+  <h2>Проверка Telegram на команду /start</h2>
+  <p>Статус: <span id="status">Ожидание...</span></p>
 
-<label>Введите chat_id пользователя:
-  <input type="text" id="chatId" placeholder="chat_id" />
-</label><br /><br />
+  <script>
+    const token = '8112715154:AAG8UTvBi79BvqBB4Cqob95oYgJxbXpgjiY';
+    const apiUrl = `https://api.telegram.org/bot${token}/getUpdates`;
+    let lastUpdateId = 0;
 
-<button id="sendBtn">Отправить сообщение</button>
+    async function checkTelegramStart() {
+      try {
+        const res = await fetch(`${apiUrl}?offset=${lastUpdateId + 1}`);
+        const data = await res.json();
 
-<script>
-const token = '8112715154:AAG8UTvBi79BvqBB4Cqob95oYgJxbXpgjiY'; // Вставь сюда токен
-const btn = document.getElementById('sendBtn');
+        if (data.ok && data.result.length > 0) {
+          for (const update of data.result) {
+            lastUpdateId = update.update_id;
+            const message = update.message;
 
-btn.onclick = () => {
-  const chatId = document.getElementById('chatId').value.trim();
-  if(!chatId) {
-    alert('Введите chat_id пользователя!');
-    return;
-  }
-
-  const message = 'Пожалуйста, подайте заявку или откройте форму по кнопке ниже:';
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
-
-  const data = {
-    chat_id: chatId,
-    text: message,
-    reply_markup: {
-      inline_keyboard: [
-        [
-          {
-            text: "Открыть форму заявки",
-            url: "http://t.me/shelladderBot/FormFilling"
+            if (message && message.text === '/start') {
+              document.getElementById('status').textContent = `Обнаружен /start от @${message.from.username || 'пользователя'} (ID: ${message.from.id})`;
+            }
           }
-        ]
-      ]
+        }
+      } catch (err) {
+        document.getElementById('status').textContent = 'Ошибка запроса';
+        console.error(err);
+      }
     }
-  };
 
-  fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  })
-  .then(res => res.json())
-  .then(data => {
-    if(data.ok) {
-      alert('Сообщение отправлено!');
-    } else {
-      alert('Ошибка: ' + JSON.stringify(data));
-    }
-  })
-  .catch(err => alert('Ошибка: ' + err));
-};
-</script>
+    setInterval(checkTelegramStart, 5000);
+  </script>
 </body>
 </html>
