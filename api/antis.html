@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Проверка ключа Firebase</title>
+  <meta charset="UTF-8">
+  <title>Проверка ключа</title>
 </head>
 <body>
   <h1 id="result">Проверка ключа...</h1>
@@ -22,22 +22,18 @@
       measurementId: "G-F4E5ZMH7Y0"
     };
 
-    // Инициализируем Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-
-    // Получаем ключ из URL, ожидаем формат /n/{key}
-    const pathParts = window.location.pathname.split('/');
-    const key = pathParts.length > 2 ? decodeURIComponent(pathParts[2]) : null;
-
     const resultEl = document.getElementById('result');
 
-    if (!key) {
-      resultEl.textContent = 'Ключ не найден в URL';
-    } else {
-      // Предполагаем, что ключ хранится в базе в ветке "keys/{key}"
-      const keyRef = ref(db, 'keys/' + key);
+    // Извлекаем ключ из параметра URL: ?APIkey=...
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('APIkey');
 
+    if (!key) {
+      resultEl.textContent = 'Параметр APIkey не указан в URL';
+    } else {
+      const keyRef = ref(db, 'keys/' + key); // адаптируй путь если у тебя другой
       get(keyRef).then(snapshot => {
         if (snapshot.exists()) {
           resultEl.textContent = 'True';
@@ -45,7 +41,7 @@
           resultEl.textContent = 'False';
         }
       }).catch(error => {
-        console.error('Ошибка при доступе к базе:', error);
+        console.error('Ошибка при чтении из Firebase:', error);
         resultEl.textContent = 'Ошибка при проверке ключа';
       });
     }
