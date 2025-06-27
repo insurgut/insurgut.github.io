@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Проверка ключа Firebase</title>
+</head>
+<body>
+  <h1 id="result">Проверка ключа...</h1>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEmrBRlNraVtOC7JGUUsd3zapDQAJWgGs",
+      authDomain: "anti-spam-key.firebaseapp.com",
+      databaseURL: "https://anti-spam-key-default-rtdb.firebaseio.com",
+      projectId: "anti-spam-key",
+      storageBucket: "anti-spam-key.firebasestorage.app",
+      messagingSenderId: "392816028628",
+      appId: "1:392816028628:web:f87a67d1173f9f6ffb8441",
+      measurementId: "G-F4E5ZMH7Y0"
+    };
+
+    // Инициализируем Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Получаем ключ из URL, ожидаем формат /n/{key}
+    const pathParts = window.location.pathname.split('/');
+    const key = pathParts.length > 2 ? decodeURIComponent(pathParts[2]) : null;
+
+    const resultEl = document.getElementById('result');
+
+    if (!key) {
+      resultEl.textContent = 'Ключ не найден в URL';
+    } else {
+      // Предполагаем, что ключ хранится в базе в ветке "keys/{key}"
+      const keyRef = ref(db, 'keys/' + key);
+
+      get(keyRef).then(snapshot => {
+        if (snapshot.exists()) {
+          resultEl.textContent = 'True';
+        } else {
+          resultEl.textContent = 'False';
+        }
+      }).catch(error => {
+        console.error('Ошибка при доступе к базе:', error);
+        resultEl.textContent = 'Ошибка при проверке ключа';
+      });
+    }
+  </script>
+</body>
+</html>
