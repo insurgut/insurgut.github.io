@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code to Telegram</title>
+    <style>
+        :root {
+            --color-white: #ffffff;
+            --color-accent: #282828;
+            --color-accent-hover: #3a3a3a;
+            --color-accent-active: #1a1a1a;
+            --color-border: #e0e0e0;
+            --color-error: #dc3545;
+            --color-success: #28a745;
+            --color-focus: rgba(40, 40, 40, 0.2);
+            --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-family-mono: "Courier New", Courier, monospace;
+            --space-8: 8px;
+            --space-12: 12px;
+            --space-16: 16px;
+            --space-24: 24px;
+            --radius-base: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family-base);
+            background-color: var(--color-white);
+            color: var(--color-accent);
+            padding: var(--space-24);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: var(--space-16);
+        }
+
+        label {
+            display: none;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: var(--space-12);
+            margin-bottom: var(--space-12);
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: var(--space-16);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            background-color: var(--color-white);
+            color: var(--color-accent);
+            font-family: var(--font-family-base);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        textarea {
+            font-family: var(--font-family-mono);
+            resize: vertical;
+            min-height: 300px;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px var(--color-focus);
+        }
+
+        .btn {
+            background-color: var(--color-accent);
+            color: white;
+            padding: var(--space-16) var(--space-24);
+            border: none;
+            border-radius: var(--radius-base);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background-color: var(--color-accent-hover);
+        }
+
+        .btn:active {
+            background-color: var(--color-accent-active);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: var(--space-12);
+            border-radius: var(--radius-base);
+            margin-bottom: var(--space-16);
+            display: none;
+        }
+
+        .message.success {
+            background-color: rgba(40, 167, 69, 0.1);
+            border: 1px solid var(--color-success);
+            color: var(--color-success);
+        }
+
+        .message.error {
+            background-color: rgba(220, 53, 69, 0.1);
+            border: 1px solid var(--color-error);
+            color: var(--color-error);
+        }
+
+        .message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📤 Code to Telegram</h1>
+        
+        <div id="message" class="message"></div>
+
+        <form id="codeForm">
+            <div class="form-group">
+                <label for="filename">Имя файла:</label>
+                <input type="text" id="filename" name="filename" placeholder="example" required>
+            </div>
+
+            <div class="form-group">
+                <label for="extension">Расширение:</label>
+                <select id="extension" name="extension" required>
+                    <option value=".txt">.txt</option>
+                    <option value=".py" selected>.py</option>
+                    <option value=".js">.js</option>
+                    <option value=".html">.html</option>
+                    <option value=".css">.css</option>
+                    <option value=".json">.json</option>
+                    <option value=".xml">.xml</option>
+                    <option value=".md">.md</option>
+                    <option value=".java">.java</option>
+                    <option value=".cpp">.cpp</option>
+                    <option value=".c">.c</option>
+                    <option value=".php">.php</option>
+                    <option value=".rb">.rb</option>
+                    <option value=".go">.go</option>
+                    <option value=".rs">.rs</option>
+                    <option value=".sh">.sh</option>
+                    <option value=".sql">.sql</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="content">Содержимое файла:</label>
+                <textarea id="content" name="content" placeholder="Введите ваш код здесь..." required></textarea>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">Отправить в Telegram</button>
+        </form>
+    </div>
+
+    <script>
+        const BOT_TOKEN = '8346632092:AAFZXeTKRvf44m7dRJxqkFNIpFWWpOmbUE0';
+        const CHAT_ID = '6222585321';
+
+        const form = document.getElementById('codeForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const messageDiv = document.getElementById('message');
+
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type} show`;
+            setTimeout(() => {
+                messageDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        async function sendToTelegram(filename, extension, content) {
+            const fullFilename = filename + extension;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const formData = new FormData();
+            formData.append('chat_id', CHAT_ID);
+            formData.append('document', blob, fullFilename);
+            formData.append('caption', `Файл: ${fullFilename}`);
+
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    showMessage('✅ Файл успешно отправлен в Telegram!', 'success');
+                    form.reset();
+                } else {
+                    showMessage(`❌ Ошибка: ${data.description}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const filename = document.getElementById('filename').value.trim();
+            const extension = document.getElementById('extension').value;
+            const content = document.getElementById('content').value;
+
+            if (!filename || !content) {
+                showMessage('❌ Заполните все поля!', 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Отправка...';
+
+            await sendToTelegram(filename, extension, content);
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Отправить в Telegram';
+        });
+    </script>
+</body>
+</html>
