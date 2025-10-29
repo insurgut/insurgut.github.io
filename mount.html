@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Баланс счёта</title>
+    
+    <!-- Open Graph meta tags -->
+    <meta property="og:title" content="Мой баланс счёта">
+    <meta property="og:description" content="Текущий баланс: 15,350.50 ₽">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://via.placeholder.com/1200x630/4CAF50/ffffff?text=Баланс:+15,350.50+₽">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .widget {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .label {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .balance {
+            font-size: 42px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        
+        .currency {
+            font-size: 24px;
+            color: #666;
+            margin-left: 5px;
+        }
+        
+        .status {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="widget">
+        <div class="label">Текущий баланс</div>
+        <div class="balance">
+            <span id="amount">15,350.50</span>
+            <span class="currency">₽</span>
+        </div>
+        <div class="status">● Активен</div>
+    </div>
+    
+    <script>
+        // Можно динамически обновлять баланс
+        function updateBalance(newAmount) {
+            document.getElementById('amount').textContent = newAmount.toLocaleString('ru-RU', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+        
+        // Пример использования:
+        // updateBalance(25000.75);
+    </script>
+</body>
+</html>
