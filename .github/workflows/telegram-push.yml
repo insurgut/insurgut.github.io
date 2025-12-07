@@ -15,65 +15,67 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
-          # Отключаем падение скрипта при ошибках
           set +e
-          
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           git config core.quotePath false
 
-          # Определение диапазона коммитов
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
 
-          # Фильтр ACMRT исключает удаленные файлы, чтобы не было ошибки 26
           git diff --diff-filter=ACMRT --name-only $RANGE -- source/ | while read -r FILE; do
             echo "Processing: $FILE"
             
-            # Проверка на существование и пустоту
             if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
 
-            # --- СБОР ДАННЫХ ДЛЯ КРАСИВОГО ВИДА ---
+            # --- СБОР ДАННЫХ ---
             
+            # 1. Строки
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
               L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
-              V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
+              # Пробуем найти версию, если нет - ставим "?"
+              V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1)
             else
               L_OLD="0"
               V_OLD="New"
             fi
             
+            # Если переменная пустая (не нашли версию), ставим вопрос
+            if [ -z "$V_OLD" ]; then V_OLD="?"; fi
+
             L_NEW=$(wc -l < "$FILE")
-            V_NEW=$(grep -a -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
+            V_NEW=$(grep -a -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1)
+            if [ -z "$V_NEW" ]; then V_NEW="?"; fi
             
-            # Экранирование спецсимволов для HTML (чтобы не ломать теги)
+            # 2. Ссылки и Текст
             COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\\"/g')
-            
             COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
             FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
             
-            # Красивая HTML подпись
-            CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a> • $V_OLD ➝ <a href=\"$FILE_URL\">$V_NEW</a> • ${L_OLD}L ➝ ${L_NEW}L</blockquote>"
-
-            # --- ОТПРАВКА ---
+            # 3. HTML ПОДПИСЬ
+            # Используем <b> вместо blockquote, так надежнее для ссылок
+            CAP="<b><a href=\"$COMMIT_URL\">$COMMIT_MSG</a></b>%0AVers: $V_OLD ➝ <a href=\"$FILE_URL\">$V_NEW</a>%0ALines: ${L_OLD}L ➝ ${L_NEW}L"
 
             echo "Sending $FILE..."
+            echo "Debug HTML: $CAP"
             
-            # Пробуем отправить красиво (HTML)
+            # --- ПОПЫТКА 1: HTML ---
             curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt || true
             
-            # Если не вышло (например, ошибка в HTML или таймаут)
+            # Проверка успеха
             if ! grep -q '"ok":true' response.json; then
-                echo "::error::First attempt failed. Retrying plain text..."
+                echo "::error::HTML Send Failed!"
+                cat response.json
                 
-                # Запасной вариант: простая подпись без HTML
-                SIMPLE_CAP="File: $FILE ($V_NEW) - $COMMIT_MSG"
+                # --- ПОПЫТКА 2: TEXT (Запасной вариант) ---
+                echo "Retrying without HTML..."
+                SIMPLE_CAP="File: $FILE | Ver: $V_NEW | $COMMIT_MSG"
                 
                 curl -s -F chat_id="$CHAT_ID" \
                      -F document=@"$FILE" \
@@ -83,6 +85,4 @@ jobs:
                 echo "SUCCESS: Sent $FILE"
             fi
           done
-          
-          # Всегда успешный выход, чтобы шаг не краснел
           exit 0
