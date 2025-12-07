@@ -14,8 +14,11 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
+          # Отключаем немедленный выход при ошибках, чтобы успеть отправить отчет
+          set +e
+          
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
-          echo "DEBUG: Token is loaded: $TRIMMED_TOKEN"
+          echo "DEBUG: Token loaded (masked): ${TRIMMED_TOKEN:0:3}..."
           
           git config core.quotePath false
 
@@ -26,7 +29,17 @@ jobs:
           fi
 
           git diff --name-only $RANGE -- source/ | while read -r FILE; do
-            if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
+            echo "Processing: $FILE"
+            
+            if [ ! -f "$FILE" ]; then 
+              echo "File not found (deleted/moved), skipping."
+              continue
+            fi
+            
+            if [ ! -s "$FILE" ]; then 
+              echo "File is empty, skipping."
+              continue
+            fi
 
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
               L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
@@ -45,24 +58,30 @@ jobs:
             
             CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a> • $V_OLD to <a href=\"$FILE_URL\">$V_NEW</a> • ${L_OLD}L to ${L_NEW}L</blockquote>"
             
+            # Записываем вывод и код возврата отдельно
             RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument")
             
-            if [[ "$RESPONSE" != *"\"ok\":true"* ]]; then
-              echo "UPLOAD FAILED. Server response:"
-              echo "$RESPONSE"
+            CURL_EXIT_CODE=$?
+
+            # Если код выхода не 0 ИЛИ ответ сервера не содержит "ok":true
+            if [ $CURL_EXIT_CODE -ne 0 ] || [[ "$RESPONSE" != *"\"ok\":true"* ]]; then
+              echo "UPLOAD FAILED. Curl Code: $CURL_EXIT_CODE. Response: $RESPONSE"
               
-              SAFE_RESP=$(echo "$RESPONSE" | sed 's/"/\\"/g')
-              ERR_MSG="⚠️ <b>Deploy Error</b>%0AFile: $FILE%0AResponse: <pre>$SAFE_RESP</pre>"
+              # Экранируем кавычки для JSON
+              SAFE_RESP=$(echo "$RESPONSE" | sed 's/"/\\"/g' | tail -c 200)
               
+              ERR_MSG="⚠️ <b>Deploy Error</b>%0AFile: $FILE%0ACurl Code: $CURL_EXIT_CODE%0AResponse: <pre>$SAFE_RESP</pre>"
+              
+              # Отправляем текстовое сообщение об ошибке
               curl -s -X POST "https://api.telegram.org/bot$TRIMMED_TOKEN/sendMessage" \
                 -d chat_id="$CHAT_ID" \
                 -d parse_mode="HTML" \
                 -d text="$ERR_MSG"
-                
-              exit 1
+            else
+              echo "Success: $FILE"
             fi
           done
