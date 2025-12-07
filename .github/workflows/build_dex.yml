@@ -33,7 +33,7 @@ jobs:
       - name: Compile Java
         run: |
           mkdir -p build_temp
-          javac -cp android.jar -d build_temp source/madre.java
+          javac -cp android.jar -d build_temp source/MandreSettingsDex.java
           echo "✅ Compilation done. Files created:"
           find build_temp
 
