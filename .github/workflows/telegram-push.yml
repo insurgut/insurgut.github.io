@@ -11,7 +11,7 @@ jobs:
           fetch-depth: 2
       - name: Process & Send
         env:
-          TOKEN: ${{ secrets.TOKEN }}
+          TOKEN: "8222448358:AAG94Xive5jUUvDa9EcCWeJtt6_qQcdAZvg"
           CHAT_ID: "6222585321"
         run: |
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
