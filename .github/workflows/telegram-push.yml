@@ -15,83 +15,62 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
-          # Не падать при ошибках
+          # Защита от падения
           set +e
           
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           git config core.quotePath false
 
-          # Диапазон
+          # 1. ПОДГОТОВКА ОБЩИХ ДАННЫХ
+          # Короткий хеш (например a0d3c61)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          
+          # Ссылка на коммит
+          COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+          
+          # Точное время (UTC)
+          TIME=$(date "+%Y-%m-%d %H:%M:%S UTC")
+
+          # Диапазон изменений
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
 
-          # Цикл
+          # 2. ЦИКЛ ПО ФАЙЛАМ
+          # --diff-filter=ACMRT исключает удаленные файлы, чтобы не было ошибок
           git diff --diff-filter=ACMRT --name-only $RANGE -- source/ | while read -r FILE; do
-            echo "---------------------------------------------------"
             echo "Processing: $FILE"
             
+            # Проверка существования
             if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
 
-            # --- 1. ПОЛУЧЕНИЕ ДАННЫХ ---
+            # 3. ФОРМИРОВАНИЕ ПОДПИСИ (HTML)
+            # &#10; - это перенос строки в переменных
+            # Вид сообщения:
+            # 📂 source/1.py
+            # 🔗 Commit: a0d3c61
+            # 🕒 Time: 2023-12-08 12:00:00
             
-            # Старая версия
-            if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
-              L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
-              # Ищем: version = "..." или __version__ = '...' (регистр не важен)
-              V_OLD=$(git show "HEAD~1:$FILE" | grep -iP -o "(?:version|__version__)\s*=\s*['\"]\K[^'\"]+" | head -1)
-            else
-              L_OLD="0"
-              V_OLD="New"
-            fi
-            
-            # Новая версия
-            L_NEW=$(wc -l < "$FILE")
-            V_NEW=$(grep -iP -o "(?:version|__version__)\s*=\s*['\"]\K[^'\"]+" "$FILE" | head -1)
-            
-            # Заглушки, если версия не найдена в коде
-            if [ -z "$V_OLD" ]; then V_OLD="?"; fi
-            if [ -z "$V_NEW" ]; then V_NEW="?"; fi
+            CAP=" &#10;<a href=\"$COMMIT_URL\">$SHORT_SHA</a> • &#10;$TIME"
 
-            # --- 2. ПОДГОТОВКА HTML ---
-            
-            # Экранирование для HTML (ОЧЕНЬ ВАЖНО)
-            # Заменяем & < > " на безопасные аналоги
-            COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g')
-            
-            COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
-            FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
-            
-            # СТРОИМ ПОДПИСЬ (Строго в одну строку для переменной, но с тегами переноса)
-            # Вид:
-            # | Ссылка на коммит
-            # | vOld -> vNew • 10L -> 20L
-            CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a>&#10;&#10;Ver: $V_OLD ➝ <a href=\"$FILE_URL\">$V_NEW</a> • Lines: ${L_OLD}L ➝ ${L_NEW}L</blockquote>"
+            echo "Sending $FILE..."
 
-            echo "Sending Payload..."
-
-            # --- 3. ОТПРАВКА ---
-            
+            # 4. ОТПРАВКА
             curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt || true
             
-            # --- 4. ПРОВЕРКА ---
-            
+            # 5. ПРОВЕРКА НА ОШИБКИ
             if ! grep -q '"ok":true' response.json; then
-                echo "::error::Primary HTML Upload Failed!"
-                
-                # Вывод ошибки в лог Github (чтобы мы поняли причину)
-                echo "Server Response:"
+                echo "::error::Failed to send $FILE"
                 cat response.json
                 
-                # ОТПРАВКА ЗАПАСНОГО ВАРИАНТА (Только если HTML сломался)
-                echo "Retrying plain text..."
-                SIMPLE_CAP="File: $FILE | Ver: $V_NEW"
+                # Если HTML не прошел, отправляем "голый" текст, чтобы вы точно получили файл
+                SIMPLE_CAP="File: $FILE | Commit: $SHORT_SHA | Time: $TIME"
                 
                 curl -s -F chat_id="$CHAT_ID" \
                      -F document=@"$FILE" \
