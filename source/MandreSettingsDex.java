@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-class MandreSettingsDex {
+public class MandreSettingsDex { 
 
     public static final int EVENT_LOG = 1;
     public static final int EVENT_SET_SETTING = 2;
