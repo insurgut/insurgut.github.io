@@ -1,40 +1,50 @@
-- name: Process & Send
+name: TG Deploy
+on:
+  push:
+    paths: ['source/**']
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+          
+      - name: Process & Send
         env:
+          # Используйте секрет! Не пишите токен сюда.
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
-          # 1. Очистка токена
+          # Убираем пробелы из токена (на всякий случай)
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           
-          # 2. Настройка git, чтобы он не оборачивал имена с пробелами в кавычки
+          # Отключаем экранирование путей, чтобы имена с пробелами не были в кавычках "file.txt"
           git config core.quotePath false
           
-          # 3. Определение диапазона коммитов (защита от падения на первом коммите)
+          # Защита от первого коммита (если HEAD~1 нет)
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
-            echo "First commit detected, diffing against empty tree"
-            # Магический хеш пустого дерева в git
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
-
-          # 4. Основной цикл
+          
           git diff --name-only $RANGE -- source/ | while read -r FILE; do
             echo "Processing: $FILE"
             
-            # Проверка существования
+            # 1. Проверка существования
             if [ ! -f "$FILE" ]; then 
-              echo "  - File not found (deleted?), skipping."
-              continue
+              echo "Skipping deleted file."
+              continue 
             fi
             
-            # Проверка на пустой файл (curl code 26 fix)
+            # 2. ВАЖНО: Пропуск пустых файлов (это частая причина ошибки 26)
             if [ ! -s "$FILE" ]; then
-              echo "  - File is empty (0 bytes), skipping upload."
+              echo "Skipping empty file."
               continue
             fi
 
-            # Получение старой версии
+            # Сбор информации о версиях
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
               L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
               V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
@@ -52,16 +62,10 @@
             
             CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a> • $V_OLD to <a href=\"$FILE_URL\">$V_NEW</a> • ${L_OLD}L to ${L_NEW}L</blockquote>"
             
-            # Отправка с обработкой ошибок ( || true не даст упасть всему джобу)
-            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -F chat_id="$CHAT_ID" \
+            # Отправка. "|| true" не даст скрипту упасть, если один файл сбойный
+            curl -s -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
-                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" || echo "CURL_FAIL")
-            
-            if [[ "$RESPONSE" == *"CURL_FAIL"* ]]; then
-               echo "::error::Curl failed to upload $FILE (Exit Code 26 or other)"
-            else
-               echo "  - Sent successfully."
-            fi
+                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" || echo "::error::Failed to send $FILE"
           done
