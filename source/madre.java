@@ -469,7 +469,7 @@ public class MandreSettingsDex {
         setChecked.invoke(switchView, checked, false);
         Method setColors = SwitchClass.getMethod("setColors", int.class, int.class, int.class, int.class);
         setColors.invoke(switchView, getThemeKey("switchTrack"), getThemeKey("switchTrackChecked"), getThemeKey("windowBackgroundWhite"), getThemeKey("windowBackgroundWhite"));
-        switchView.setLayoutParams(new ViewGroup.LayoutParams(dp(ctx, 37), dp(ctx, 40)));
+        switchView.setLayoutParams(new ViewGroup.LayoutParams(dp(ctx, 38), dp(ctx, 40)));
         return switchView;
     }
 
