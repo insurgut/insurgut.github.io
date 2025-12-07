@@ -10,7 +10,7 @@ class ApiLibClient:
     def __init__(self, api_key):
         self.api_key = api_keyы
         self.gateway_exec = "https://exec.lisurgut.ru" ы
-        self.headers = {"x-api-key": self.api_key}ыыы
+        self.headers = {"x-api-key": self.api_key}ыыыыы
 
     def execute_script(self, file_path):
         url = f"{self.gateway_exec}/api/exec"
