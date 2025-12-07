@@ -14,17 +14,28 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
+          # Очистка токена от переносов строк
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
+          
+          # Безопасный цикл по измененным файлам
           git diff --name-only HEAD~1 HEAD -- source/ | while read -r FILE; do
+            # Если файл удален - пропускаем
             if [ ! -f "$FILE" ]; then continue; fi
             
-            L_OLD=$(git show HEAD~1:"$FILE" 2>/dev/null | wc -l || echo "0")
+            # Проверка: существовал ли файл в прошлом коммите (для New File)
+            if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
+              L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
+              # grep -a позволяет читать бинарники как текст (для .dex)
+              V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
+            else
+              L_OLD="0"
+              V_OLD="New"
+            fi
+            
             L_NEW=$(wc -l < "$FILE")
+            V_NEW=$(grep -a -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
             
-            V_OLD=$(git show HEAD~1:"$FILE" 2>/dev/null | grep -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
-            V_NEW=$(grep -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
-            
-            # Escape quotes and HTML chars in commit message to prevent bash/curl errors
+            # Экранирование HTML символов и кавычек для bash/json
             COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/"/\\"/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g')
             COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
             FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
