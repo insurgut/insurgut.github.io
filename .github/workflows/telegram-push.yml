@@ -16,70 +16,80 @@ jobs:
           CHAT_ID: "6222585321"
         run: |
           set +e
+          
+          # Подготовка токена
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           git config core.quotePath false
 
+          # Диапазон коммитов
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
 
+          # Цикл по файлам (исключая удаленные)
           git diff --diff-filter=ACMRT --name-only $RANGE -- source/ | while read -r FILE; do
             echo "Processing: $FILE"
             
             if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
 
-            # --- СБОР ДАННЫХ ---
+            # --- 1. ВЕРСИИ И СТРОКИ ---
             
-            # 1. Строки
+            # Получение старых данных
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
               L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
-              # Пробуем найти версию, если нет - ставим "?"
-              V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1)
+              # Ищем version или __version__, с " или '
+              V_OLD=$(git show "HEAD~1:$FILE" | grep -aP -o "(?:version|__version__)\s*=\s*['\"]\K[^'\"]+" | head -1)
             else
               L_OLD="0"
               V_OLD="New"
             fi
             
-            # Если переменная пустая (не нашли версию), ставим вопрос
-            if [ -z "$V_OLD" ]; then V_OLD="?"; fi
-
+            # Получение новых данных
             L_NEW=$(wc -l < "$FILE")
-            V_NEW=$(grep -a -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1)
-            if [ -z "$V_NEW" ]; then V_NEW="?"; fi
+            V_NEW=$(grep -aP -o "(?:version|__version__)\s*=\s*['\"]\K[^'\"]+" "$FILE" | head -1)
             
-            # 2. Ссылки и Текст
-            COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\\"/g')
+            # Если версия не найдена, ставим заглушку, чтобы не ломать HTML
+            if [ -z "$V_OLD" ]; then V_OLD="?"; fi
+            if [ -z "$V_NEW" ]; then V_NEW="?"; fi
+
+            # --- 2. ПОДГОТОВКА ТЕКСТА ---
+            
+            # Экранируем HTML спецсимволы в сообщении коммита
+            COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g')
+            
             COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
             FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
             
-            # 3. HTML ПОДПИСЬ
-            # Используем <b> вместо blockquote, так надежнее для ссылок
-            CAP="<b><a href=\"$COMMIT_URL\">$COMMIT_MSG</a></b>%0AVers: $V_OLD ➝ <a href=\"$FILE_URL\">$V_NEW</a>%0ALines: ${L_OLD}L ➝ ${L_NEW}L"
+            # Формируем HTML. Используем printf для корректных переносов строк.
+            # Структура:
+            # Цитата ( Ссылка на коммит • версии • строки )
+            
+            CAP_HTML=$(printf "<blockquote><a href=\"%s\">%s</a>\n\nVer: %s ➝ <a href=\"%s\">%s</a>\nLines: %sL ➝ %sL</blockquote>" \
+              "$COMMIT_URL" "$COMMIT_MSG" "$V_OLD" "$FILE_URL" "$V_NEW" "$L_OLD" "$L_NEW")
 
             echo "Sending $FILE..."
-            echo "Debug HTML: $CAP"
+
+            # --- 3. ОТПРАВКА ---
             
-            # --- ПОПЫТКА 1: HTML ---
             curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
-                 -F caption="$CAP" \
+                 -F caption="$CAP_HTML" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt || true
             
-            # Проверка успеха
+            # Проверка на ошибки
             if ! grep -q '"ok":true' response.json; then
-                echo "::error::HTML Send Failed!"
+                echo "::error::Primary upload failed!"
+                cat curl_log.txt
                 cat response.json
                 
-                # --- ПОПЫТКА 2: TEXT (Запасной вариант) ---
-                echo "Retrying without HTML..."
-                SIMPLE_CAP="File: $FILE | Ver: $V_NEW | $COMMIT_MSG"
-                
+                # Если не сработал HTML (например, из-за скрытых символов), отправляем упрощенно
+                echo "Retrying plain text..."
                 curl -s -F chat_id="$CHAT_ID" \
                      -F document=@"$FILE" \
-                     -F caption="$SIMPLE_CAP" \
+                     -F caption="File: $FILE (v$V_NEW). Error sending HTML." \
                      "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" || true
             else
                 echo "SUCCESS: Sent $FILE"
