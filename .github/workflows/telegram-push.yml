@@ -1,28 +1,11 @@
-name: TG Deploy
-on:
-  push:
-    paths: ['source/**']
-jobs:
-  send:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-          
-      - name: Process & Send
+- name: Process & Send
         env:
-          # Используйте секрет! Не пишите токен сюда.
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
-          # Убираем пробелы из токена (на всякий случай)
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
-          
-          # Отключаем экранирование путей, чтобы имена с пробелами не были в кавычках "file.txt"
           git config core.quotePath false
           
-          # Защита от первого коммита (если HEAD~1 нет)
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
@@ -30,21 +13,20 @@ jobs:
           fi
           
           git diff --name-only $RANGE -- source/ | while read -r FILE; do
+            echo "----------------------------------------------"
             echo "Processing: $FILE"
             
-            # 1. Проверка существования
             if [ ! -f "$FILE" ]; then 
               echo "Skipping deleted file."
               continue 
             fi
             
-            # 2. ВАЖНО: Пропуск пустых файлов (это частая причина ошибки 26)
             if [ ! -s "$FILE" ]; then
               echo "Skipping empty file."
               continue
             fi
 
-            # Сбор информации о версиях
+            # Сбор данных
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
               L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
               V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
@@ -52,7 +34,6 @@ jobs:
               L_OLD="0"
               V_OLD="New"
             fi
-            
             L_NEW=$(wc -l < "$FILE")
             V_NEW=$(grep -a -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
             
@@ -62,10 +43,28 @@ jobs:
             
             CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a> • $V_OLD to <a href=\"$FILE_URL\">$V_NEW</a> • ${L_OLD}L to ${L_NEW}L</blockquote>"
             
-            # Отправка. "|| true" не даст скрипту упасть, если один файл сбойный
-            curl -s -F chat_id="$CHAT_ID" \
+            echo "Attempting upload..."
+            
+            # ВАЖНОЕ ИЗМЕНЕНИЕ: 
+            # 1. Убрали -s (silent)
+            # 2. Добавили -v (verbose) для отладки
+            # 3. Записываем вывод в переменную и выводим его
+            
+            OUTPUT=$(curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
-                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" || echo "::error::Failed to send $FILE"
+                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" 2>&1)
+            
+            EXIT_CODE=$?
+            
+            if [ $EXIT_CODE -ne 0 ]; then
+                echo "::error::CURL CRASHED with code $EXIT_CODE"
+                echo "$OUTPUT"
+            elif [[ "$OUTPUT" != *"\"ok\":true"* ]]; then
+                echo "::error::TELEGRAM API ERROR"
+                echo "$OUTPUT"
+            else
+                echo "Success!"
+            fi
           done
