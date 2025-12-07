@@ -20,34 +20,37 @@ jobs:
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           git config core.quotePath false
 
-          # 1. Данные
+          # 1. ПОДГОТОВКА ДАННЫХ
           SHORT_SHA=$(git rev-parse --short HEAD)
           COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+          
           # Время МСК
           TIME=$(TZ=Europe/Moscow date "+%Y-%m-%d %H:%M:%S")
+          TIME_URL="https://time.is/Moscow"
 
+          # 2. ДИАПАЗОН
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
 
+          # 3. ОТПРАВКА
           git diff --diff-filter=ACMRT --name-only $RANGE -- source/ | while read -r FILE; do
             echo "Processing: $FILE"
             if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
 
-            # --- МАРКДАУН (Markdown) ---
-            # Формат: [текст](ссылка)
-            # В Markdown (старом) не нужно экранировать точки в дате, в отличие от V2
+            # --- ГЕНЕРАЦИЯ ПОДПИСИ (HTML через printf) ---
+            # Это самый надежный способ вставить ссылки без ошибок кавычек
             
-            CAP="[$SHORT_SHA]($COMMIT_URL) • $TIME"
+            CAP=$(printf "<a href='%s'>%s</a> • <a href='%s'>%s</a>" "$COMMIT_URL" "$SHORT_SHA" "$TIME_URL" "$TIME")
 
-            echo "Sending..."
+            echo "Generated Caption: $CAP"
 
             # --- ОТПРАВКА ---
             curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
-                 -F parse_mode="Markdown" \
+                 -F parse_mode="HTML" \
                  -F caption="$CAP" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt || true
             
@@ -56,12 +59,11 @@ jobs:
                 echo "::error::Upload Failed for $FILE"
                 cat response.json
                 
-                # Если Маркдаун не прошел, шлем чистый текст с ошибкой
-                ERR_TEXT="Deploy Error: $FILE. Telegram rejected Markdown."
-                
+                # Если HTML не прошел - запасной вариант текстом
+                ERR_MSG="Deploy Error: $FILE (Telegram rejected HTML)"
                 curl -s -X POST "https://api.telegram.org/bot$TRIMMED_TOKEN/sendMessage" \
                      -d chat_id="$CHAT_ID" \
-                     -d text="$ERR_TEXT" || true
+                     -d text="$ERR_MSG" || true
             else
                 echo "SUCCESS: Sent $FILE"
             fi
