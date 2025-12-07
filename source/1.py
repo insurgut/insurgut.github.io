@@ -8,7 +8,7 @@ import reasd
 
 class ApiLibClient:
     def __init__(self, api_key):
-        self.api_key = api_key
+        self.api_key = api_keyы
         self.gateway_exec = "https://exec.lisurgut.ru" 
         self.headers = {"x-api-key": self.api_key}
 
