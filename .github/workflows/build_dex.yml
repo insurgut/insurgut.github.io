@@ -27,20 +27,24 @@ jobs:
       - name: Compile Java
         run: |
           mkdir -p build_temp
-          # ИЗМЕНЕНИЕ: Используем *.java, чтобы брать любой файл
+          # ИЗМЕНЕНИЕ: Компилируем ВСЕ java файлы в папке source
           javac -cp android.jar -d build_temp source/*.java
           echo "✅ Compilation done."
 
       - name: Convert to DEX
         run: |
+          # Ищем d8
           BUILD_TOOLS_VERSION=$(ls $ANDROID_SDK_ROOT/build-tools/ | tail -n 1)
           D8_PATH="$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/d8"
           
-          # Конвертируем все скомпилированные классы
+          # Конвертируем все скомпилированные классы (.class) в DEX
+          # Обратите внимание: путь build_temp/dex/mandre/*.class зависит от package внутри java файла
           $D8_PATH --output source/ --lib android.jar build_temp/dex/mandre/*.class
           
-          # Переименовываем результат в MandreSettings.dex (если d8 создал classes.dex)
-          mv source/classes.dex source/MandreSettings.dex || true
+          # Если d8 создал classes.dex, переименуем его
+          if [ -f source/classes.dex ]; then
+            mv source/classes.dex source/MandreSettings.dex
+          fi
 
       - name: Commit and Push DEX
         uses: stefanzweifel/git-auto-commit-action@v4
