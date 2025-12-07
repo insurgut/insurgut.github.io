@@ -1,4 +1,4 @@
-import requests
+import request
 import os
 import tkinter as tk
 from tkinter import filedialog
