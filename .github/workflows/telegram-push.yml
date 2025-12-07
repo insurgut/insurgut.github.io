@@ -1,28 +1,42 @@
-- name: TG
+name: TG Deploy
+on:
+  push:
+    paths: ['source/**']
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Process & Send
         env:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
+          # Отключаем падение скрипта при ошибках
           set +e
           
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           git config core.quotePath false
 
+          # Определение диапазона коммитов
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
 
-          # Фильтр ACMRT исключает удаленные файлы
+          # Фильтр ACMRT исключает удаленные файлы, чтобы не было ошибки 26
           git diff --diff-filter=ACMRT --name-only $RANGE -- source/ | while read -r FILE; do
             echo "Processing: $FILE"
             
+            # Проверка на существование и пустоту
             if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
 
             # --- СБОР ДАННЫХ ДЛЯ КРАСИВОГО ВИДА ---
             
-            # 1. Версии и строки (Старое -> Новое)
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
               L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
               V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
@@ -34,32 +48,32 @@
             L_NEW=$(wc -l < "$FILE")
             V_NEW=$(grep -a -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
             
-            # 2. Ссылки и текст
-            # Экранируем спецсимволы HTML (<, >, &, ") в сообщении коммита
+            # Экранирование спецсимволов для HTML (чтобы не ломать теги)
             COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\\"/g')
+            
             COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
             FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
             
-            # 3. Формируем HTML подпись
+            # Красивая HTML подпись
             CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a> • $V_OLD ➝ <a href=\"$FILE_URL\">$V_NEW</a> • ${L_OLD}L ➝ ${L_NEW}L</blockquote>"
 
             # --- ОТПРАВКА ---
 
             echo "Sending $FILE..."
             
+            # Пробуем отправить красиво (HTML)
             curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt || true
             
+            # Если не вышло (например, ошибка в HTML или таймаут)
             if ! grep -q '"ok":true' response.json; then
-                echo "::error::Upload Failed for $FILE"
+                echo "::error::First attempt failed. Retrying plain text..."
                 
-                # Если не вышло красиво (например, ошибка 400 из-за HTML), 
-                # пробуем отправить просто текстом, чтобы файл все равно дошел
-                echo "Retrying without HTML..."
-                SIMPLE_CAP="File: $FILE ($V_NEW)"
+                # Запасной вариант: простая подпись без HTML
+                SIMPLE_CAP="File: $FILE ($V_NEW) - $COMMIT_MSG"
                 
                 curl -s -F chat_id="$CHAT_ID" \
                      -F document=@"$FILE" \
@@ -69,4 +83,6 @@
                 echo "SUCCESS: Sent $FILE"
             fi
           done
+          
+          # Всегда успешный выход, чтобы шаг не краснел
           exit 0
