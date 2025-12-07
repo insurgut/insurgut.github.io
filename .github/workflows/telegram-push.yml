@@ -1,4 +1,4 @@
-- name: Process & Send
+- name: TG
         env:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
