@@ -20,55 +20,52 @@ jobs:
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           git config core.quotePath false
 
-          # 1. ПОДГОТОВКА ДАННЫХ
-          # Короткий хеш (например a0d3c61)
+          # 1. Данные
           SHORT_SHA=$(git rev-parse --short HEAD)
-          
-          # Ссылка
           COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
-          
-          # Время (MSK = UTC+3). В GitHub Actions время UTC, добавляем 3 часа для МСК
-          # Если нужно UTC, уберите "TZ=Europe/Moscow"
+          # Время МСК (UTC+3)
           TIME=$(TZ=Europe/Moscow date "+%Y-%m-%d %H:%M:%S")
 
-          # 2. ДИАПАЗОН ИЗМЕНЕНИЙ
+          # 2. Диапазон
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
 
-          # 3. ЦИКЛ ПО ФАЙЛАМ
+          # 3. Отправка
           git diff --diff-filter=ACMRT --name-only $RANGE -- source/ | while read -r FILE; do
             echo "Processing: $FILE"
-            
             if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
 
-            # --- ФОРМИРОВАНИЕ ПОДПИСИ ---
-            # Формат: <commit_link> • <time>
-            CAP="<a href=\"$COMMIT_URL\">$SHORT_SHA</a> • $TIME"
+            # --- ФОРМИРОВАНИЕ СООБЩЕНИЯ ---
+            # Используем одинарные кавычки для href, чтобы Bash не ломал строку
+            # Вид: a0d3c61 • 2025-12-08 12:00:00
+            
+            CAP="<a href='$COMMIT_URL'>$SHORT_SHA</a> • $TIME"
 
-            echo "Sending $FILE..."
+            echo "Generated Caption: $CAP"
 
-            # 4. ОТПРАВКА
+            # --- ОТПРАВКА ---
             curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt || true
             
-            # 5. КОНТРОЛЬ ОШИБОК
+            # --- ПРОВЕРКА ---
             if ! grep -q '"ok":true' response.json; then
-                echo "::error::Failed to send $FILE"
+                echo "::error::Upload Failed for $FILE"
                 cat response.json
                 
-                # Запасной вариант (без HTML)
-                SIMPLE_CAP="$SHORT_SHA • $TIME"
+                # Если HTML не прошел - отправляем текстом ошибку, чтобы вы видели причину
+                # Не шлем файл повторно, чтобы не спамить дублями
+                ERR_TEXT="⚠️ <b>Deploy Error</b>%0AFile: $FILE%0ATelegram rejected HTML link."
                 
-                curl -s -F chat_id="$CHAT_ID" \
-                     -F document=@"$FILE" \
-                     -F caption="$SIMPLE_CAP" \
-                     "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" || true
+                curl -s -X POST "https://api.telegram.org/bot$TRIMMED_TOKEN/sendMessage" \
+                     -d chat_id="$CHAT_ID" \
+                     -d parse_mode="HTML" \
+                     -d text="$ERR_TEXT" || true
             else
                 echo "SUCCESS: Sent $FILE"
             fi
