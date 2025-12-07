@@ -3,7 +3,7 @@ import oss
 import tkinter as tk
 from tkinter import filedialog
 import base64
-import json
+import jsonфыв
 import reasd
 
 class ApiLibClient:
