@@ -15,45 +15,38 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
-          # Защита от падения
           set +e
           
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           git config core.quotePath false
 
-          # 1. ПОДГОТОВКА ОБЩИХ ДАННЫХ
+          # 1. ПОДГОТОВКА ДАННЫХ
           # Короткий хеш (например a0d3c61)
           SHORT_SHA=$(git rev-parse --short HEAD)
           
-          # Ссылка на коммит
+          # Ссылка
           COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
           
-          # Точное время (UTC)
-          TIME=$(date "+%Y-%m-%d %H:%M:%S UTC")
+          # Время (MSK = UTC+3). В GitHub Actions время UTC, добавляем 3 часа для МСК
+          # Если нужно UTC, уберите "TZ=Europe/Moscow"
+          TIME=$(TZ=Europe/Moscow date "+%Y-%m-%d %H:%M:%S")
 
-          # Диапазон изменений
+          # 2. ДИАПАЗОН ИЗМЕНЕНИЙ
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
 
-          # 2. ЦИКЛ ПО ФАЙЛАМ
-          # --diff-filter=ACMRT исключает удаленные файлы, чтобы не было ошибок
+          # 3. ЦИКЛ ПО ФАЙЛАМ
           git diff --diff-filter=ACMRT --name-only $RANGE -- source/ | while read -r FILE; do
             echo "Processing: $FILE"
             
-            # Проверка существования
             if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
 
-            # 3. ФОРМИРОВАНИЕ ПОДПИСИ (HTML)
-            # &#10; - это перенос строки в переменных
-            # Вид сообщения:
-            # 📂 source/1.py
-            # 🔗 Commit: a0d3c61
-            # 🕒 Time: 2023-12-08 12:00:00
-            
-            CAP=" &#10;<a href=\"$COMMIT_URL\">$SHORT_SHA</a> • &#10;$TIME"
+            # --- ФОРМИРОВАНИЕ ПОДПИСИ ---
+            # Формат: <commit_link> • <time>
+            CAP="<a href=\"$COMMIT_URL\">$SHORT_SHA</a> • $TIME"
 
             echo "Sending $FILE..."
 
@@ -64,13 +57,13 @@ jobs:
                  -F caption="$CAP" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt || true
             
-            # 5. ПРОВЕРКА НА ОШИБКИ
+            # 5. КОНТРОЛЬ ОШИБОК
             if ! grep -q '"ok":true' response.json; then
                 echo "::error::Failed to send $FILE"
                 cat response.json
                 
-                # Если HTML не прошел, отправляем "голый" текст, чтобы вы точно получили файл
-                SIMPLE_CAP="File: $FILE | Commit: $SHORT_SHA | Time: $TIME"
+                # Запасной вариант (без HTML)
+                SIMPLE_CAP="$SHORT_SHA • $TIME"
                 
                 curl -s -F chat_id="$CHAT_ID" \
                      -F document=@"$FILE" \
