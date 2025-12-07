@@ -144,16 +144,6 @@ public class MandreSettingsDex {
                 });
                 return asCustomMethod.invoke(null, swCell);
 
-            case "checkbox":
-                View cb = createTgCheckBox(ctx, currentBool);
-                View cbCell = createUniversalCell(ctx, text, subtext, attrs, cb);
-                cbCell.setOnClickListener(v -> {
-                    performToggleOnChild(cb);
-                    boolean state = isChildChecked(cb);
-                    sendSetSetting(callback, key, String.valueOf(state));
-                });
-                return asCustomMethod.invoke(null, cbCell);
-
             case "slider":
                 int min = parseInt(attrs.get("min"), 0);
                 int max = parseInt(attrs.get("max"), 100);
@@ -201,7 +191,6 @@ public class MandreSettingsDex {
                     return asCustomMethod.invoke(null, selCell);
                 }
 
-            // === НОВЫЙ ЭЛЕМЕНТ: Числовой ввод ===
             case "number_input":
                 String defValNum = attrs.getOrDefault("default", "");
                 String curValNum = settings.containsKey(key) ? settings.get(key) : defValNum;
@@ -210,11 +199,87 @@ public class MandreSettingsDex {
                     sendSetSetting(callback, key, val);
                 });
                 return asCustomMethod.invoke(null, numCell);
+
+            // === НОВЫЙ КОМПОНЕНТ: REGEX INPUT ===
+            case "regex_input":
+                String defValReg = attrs.getOrDefault("default", "");
+                String curValReg = settings.containsKey(key) ? settings.get(key) : defValReg;
+                String regexPattern = attrs.getOrDefault("regex", ".*"); // По умолчанию пропускаем всё
+                
+                View regCell = createRegexInputCell(ctx, text, attrs, curValReg, regexPattern, (val) -> {
+                    sendSetSetting(callback, key, val);
+                });
+                return asCustomMethod.invoke(null, regCell);
         }
         return null;
     }
 
     // --- Component Implementations ---
+
+    private static View createRegexInputCell(Context ctx, String text, Map<String, String> attrs, String currentVal, String regex, OnStringChange onChange) {
+        LinearLayout root = new LinearLayout(ctx);
+        root.setOrientation(LinearLayout.HORIZONTAL);
+        root.setGravity(Gravity.CENTER_VERTICAL);
+        root.setPadding(dp(ctx, 21), dp(ctx, 10), dp(ctx, 21), dp(ctx, 10));
+        root.setBackground(getBgDrawable());
+        root.setMinimumHeight(dp(ctx, 50));
+
+        String icon = attrs.get("icon");
+        if (icon != null) root.addView(createIconView(ctx, icon, false));
+
+        TextView title = new TextView(ctx);
+        title.setText(text);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        title.setTextColor(getThemeColor(ctx, "windowBackgroundWhiteBlackText"));
+        root.addView(title, new LinearLayout.LayoutParams(0, -2, 1.0f));
+
+        EditText input = new EditText(ctx);
+        input.setText(currentVal);
+        input.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        input.setBackground(null);
+        input.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        input.setSingleLine(true);
+        input.setPadding(dp(ctx, 10), 0, 0, 0);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        
+        // Цвет текста по умолчанию
+        int normalColor = getThemeColor(ctx, "windowBackgroundWhiteBlueText");
+        int errorColor = 0xFFFF4444; // Красный
+        
+        input.setTextColor(normalColor);
+
+        String hint = attrs.get("hint");
+        if (hint != null) {
+            input.setHint(hint);
+            input.setHintTextColor(getThemeColor(ctx, "windowBackgroundWhiteHintText"));
+        }
+
+        input.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void afterTextChanged(Editable s) {
+                String val = s.toString();
+                boolean isValid = false;
+                try {
+                    isValid = val.matches(regex);
+                } catch (Exception e) { isValid = true; } // Если регекс кривой, считаем валидным
+
+                if (isValid) {
+                    input.setTextColor(normalColor);
+                    if (onChange != null) onChange.run(val);
+                } else {
+                    input.setTextColor(errorColor);
+                    // НЕ сохраняем настройку, если не подходит по маске
+                }
+            }
+        });
+
+        // Ширина поля побольше для текста
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(ctx, 150), -2);
+        root.addView(input, lp);
+
+        return root;
+    }
 
     private static View createNumberInputCell(Context ctx, String text, Map<String, String> attrs, String currentVal, OnStringChange onChange) {
         LinearLayout root = new LinearLayout(ctx);
@@ -224,28 +289,23 @@ public class MandreSettingsDex {
         root.setBackground(getBgDrawable());
         root.setMinimumHeight(dp(ctx, 50));
 
-        // Иконка (если есть)
         String icon = attrs.get("icon");
         if (icon != null) root.addView(createIconView(ctx, icon, false));
 
-        // Текст слева
         TextView title = new TextView(ctx);
         title.setText(text);
         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         title.setTextColor(getThemeColor(ctx, "windowBackgroundWhiteBlackText"));
         root.addView(title, new LinearLayout.LayoutParams(0, -2, 1.0f));
 
-        // Поле ввода справа
         EditText input = new EditText(ctx);
         input.setText(currentVal);
         input.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         input.setTextColor(getThemeColor(ctx, "windowBackgroundWhiteBlueText"));
-        input.setBackground(null); // Убираем подчеркивание
+        input.setBackground(null);
         input.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         input.setSingleLine(true);
         input.setPadding(dp(ctx, 10), 0, 0, 0);
-        
-        // Разрешаем цифры, точку и знак минус
         input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
         
         String hint = attrs.get("hint");
@@ -254,7 +314,6 @@ public class MandreSettingsDex {
             input.setHintTextColor(getThemeColor(ctx, "windowBackgroundWhiteHintText"));
         }
 
-        // Слушатель ввода
         input.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -263,7 +322,6 @@ public class MandreSettingsDex {
             }
         });
 
-        // Ограничиваем ширину поля ввода (чтобы не занимало весь экран)
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(ctx, 100), -2);
         root.addView(input, lp);
 
@@ -279,7 +337,6 @@ public class MandreSettingsDex {
 
         String valText = (current >= 0 && current < items.length) ? items[current] : "";
         String displaySub = (subtext != null && !subtext.isEmpty()) ? subtext + "\n" + valText : valText;
-        
         if (!attrs.containsKey("subtext_color")) attrs.put("subtext_color", "windowBackgroundWhiteBlueText");
         
         View header = createUniversalCell(ctx, text, displaySub, attrs, null);
@@ -353,7 +410,6 @@ public class MandreSettingsDex {
         SeekBar seekBar = new SeekBar(ctx);
         int range = max - min;
         int progress = current - min;
-        
         seekBar.setMax(range);
         seekBar.setProgress(progress);
         
@@ -468,8 +524,6 @@ public class MandreSettingsDex {
         return iv;
     }
 
-    // --- Wrapper methods ---
-    
     private static Object createHeaderViewUItem(Context ctx, String text, Map<String, String> attrs) throws Exception {
         return asCustomMethod.invoke(null, createHeaderView(ctx, text, attrs));
     }
@@ -484,7 +538,6 @@ public class MandreSettingsDex {
         
         String align = attrs != null ? attrs.getOrDefault("align", "left") : "left";
         int gravity = parseGravity(align);
-        
         tv.setGravity(gravity | Gravity.CENTER_VERTICAL);
         tv.setPadding(dp(ctx, 21), dp(ctx, 15), dp(ctx, 21), dp(ctx, 8));
         
@@ -492,13 +545,10 @@ public class MandreSettingsDex {
         return fl;
     }
 
-    // --- Utils & Base ---
-
     private static Object createDividerUItem(Context ctx, String text) {
         LinearLayout ll = new LinearLayout(ctx);
         ll.setOrientation(LinearLayout.VERTICAL);
         ll.setBackgroundColor(getThemeColor(ctx, "windowBackgroundGray"));
-        
         if (text != null && !text.isEmpty()) {
             TextView tv = new TextView(ctx);
             tv.setText(text);
@@ -563,7 +613,6 @@ public class MandreSettingsDex {
         try {
             Constructor<?> ctor = NumberPickerClass.getConstructor(Context.class);
             View picker = (View) ctor.newInstance(ctx);
-            
             Method setMinValue = NumberPickerClass.getMethod("setMinValue", int.class);
             Method setMaxValue = NumberPickerClass.getMethod("setMaxValue", int.class);
             Method setDisplayedValues = NumberPickerClass.getMethod("setDisplayedValues", String[].class);
@@ -588,7 +637,6 @@ public class MandreSettingsDex {
                     listenerInterface = c; break;
                 }
             }
-            
             if(listenerInterface != null) {
                 Object proxy = java.lang.reflect.Proxy.newProxyInstance(
                     listenerInterface.getClassLoader(),
@@ -619,19 +667,15 @@ public class MandreSettingsDex {
             container.setGravity(Gravity.CENTER);
             container.setPadding(0, dp(ctx, 16), 0, dp(ctx, 16));
             container.setBackgroundColor(getThemeColor(ctx, "dialogBackground")); 
-            
             View picker = createRawNumberPicker(ctx, items, current, null);
-            
             try {
                  Method setTextColor = NumberPickerClass.getMethod("setTextColor", int.class);
                  Method setSelectorColor = NumberPickerClass.getMethod("setSelectorColor", int.class);
                  setTextColor.invoke(picker, getThemeColor(ctx, "dialogTextBlack"));
                  setSelectorColor.invoke(picker, getThemeColor(ctx, "dialogTextBlue"));
             } catch(Exception e) {}
-            
             container.addView(picker, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             builder.setView(container);
-            
             builder.setPositiveButton("Done", (dialog, which) -> {
                 try {
                     Method getValue = NumberPickerClass.getMethod("getValue");
@@ -642,7 +686,6 @@ public class MandreSettingsDex {
             builder.setNegativeButton("Cancel", null);
             AlertDialog dialog = builder.create();
             dialog.show();
-            
              try {
                 int btnColor = getThemeColor(ctx, "dialogTextBlue");
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(btnColor);
@@ -722,7 +765,6 @@ public class MandreSettingsDex {
 
     private interface OnBoolChange { void run(boolean val); }
     private interface OnIntChange { void run(int val); }
-    // НОВЫЙ ИНТЕРФЕЙС
     private interface OnStringChange { void run(String val); }
 
     private static int dp(Context ctx, float dp) {
