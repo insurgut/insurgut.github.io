@@ -9,11 +9,15 @@ import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -112,7 +116,6 @@ public class MandreSettingsDex {
         switch (type) {
             case "header":
             case "section":
-                // Если есть нативный метод и нет кастомного выравнивания
                 if (asHeaderMethod != null && !attrs.containsKey("align")) {
                     return asHeaderMethod.invoke(null, text);
                 }
@@ -170,7 +173,6 @@ public class MandreSettingsDex {
                 for(int i=0; i<items.length; i++) items[i] = items[i].trim();
 
                 final String[] finalItems = items;
-                
                 String mode = attrs.getOrDefault("mode", "dialog");
 
                 if ("inline".equalsIgnoreCase(mode)) {
@@ -184,7 +186,6 @@ public class MandreSettingsDex {
                     if (!attrs.containsKey("subtext_color")) attrs.put("subtext_color", "windowBackgroundWhiteBlueText");
 
                     View selCell = createUniversalCell(ctx, text, displaySub, attrs, null);
-                    
                     final TextView[] subTvRef = {null};
                     findTextViewRecursive(selCell, displaySub, subTvRef);
 
@@ -199,18 +200,80 @@ public class MandreSettingsDex {
                     });
                     return asCustomMethod.invoke(null, selCell);
                 }
+
+            // === НОВЫЙ ЭЛЕМЕНТ: Числовой ввод ===
+            case "number_input":
+                String defValNum = attrs.getOrDefault("default", "");
+                String curValNum = settings.containsKey(key) ? settings.get(key) : defValNum;
+                
+                View numCell = createNumberInputCell(ctx, text, attrs, curValNum, (val) -> {
+                    sendSetSetting(callback, key, val);
+                });
+                return asCustomMethod.invoke(null, numCell);
         }
         return null;
     }
 
     // --- Component Implementations ---
 
+    private static View createNumberInputCell(Context ctx, String text, Map<String, String> attrs, String currentVal, OnStringChange onChange) {
+        LinearLayout root = new LinearLayout(ctx);
+        root.setOrientation(LinearLayout.HORIZONTAL);
+        root.setGravity(Gravity.CENTER_VERTICAL);
+        root.setPadding(dp(ctx, 21), dp(ctx, 10), dp(ctx, 21), dp(ctx, 10));
+        root.setBackground(getBgDrawable());
+        root.setMinimumHeight(dp(ctx, 50));
+
+        // Иконка (если есть)
+        String icon = attrs.get("icon");
+        if (icon != null) root.addView(createIconView(ctx, icon, false));
+
+        // Текст слева
+        TextView title = new TextView(ctx);
+        title.setText(text);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        title.setTextColor(getThemeColor(ctx, "windowBackgroundWhiteBlackText"));
+        root.addView(title, new LinearLayout.LayoutParams(0, -2, 1.0f));
+
+        // Поле ввода справа
+        EditText input = new EditText(ctx);
+        input.setText(currentVal);
+        input.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        input.setTextColor(getThemeColor(ctx, "windowBackgroundWhiteBlueText"));
+        input.setBackground(null); // Убираем подчеркивание
+        input.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        input.setSingleLine(true);
+        input.setPadding(dp(ctx, 10), 0, 0, 0);
+        
+        // Разрешаем цифры, точку и знак минус
+        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        
+        String hint = attrs.get("hint");
+        if (hint != null) {
+            input.setHint(hint);
+            input.setHintTextColor(getThemeColor(ctx, "windowBackgroundWhiteHintText"));
+        }
+
+        // Слушатель ввода
+        input.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void afterTextChanged(Editable s) {
+                if (onChange != null) onChange.run(s.toString());
+            }
+        });
+
+        // Ограничиваем ширину поля ввода (чтобы не занимало весь экран)
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(ctx, 100), -2);
+        root.addView(input, lp);
+
+        return root;
+    }
+
     private static View createInlineSelector(Context ctx, String text, String subtext, Map<String, String> attrs, String[] items, int current, OnIntChange callback) {
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackground(getBgDrawable());
-        
-        // Делаем ВЕСЬ root кликабельным
         root.setClickable(true);
         root.setFocusable(true);
 
@@ -219,17 +282,11 @@ public class MandreSettingsDex {
         
         if (!attrs.containsKey("subtext_color")) attrs.put("subtext_color", "windowBackgroundWhiteBlueText");
         
-        // Заголовок (Header Cell)
-        // Важно: передаем null в качестве accessory, чтобы не создавать лишних View
         View header = createUniversalCell(ctx, text, displaySub, attrs, null);
-        
-        // ОТКЛЮЧАЕМ кликабельность у header, чтобы клик проходил в root
         header.setClickable(false); 
         header.setBackground(null); 
-        
         root.addView(header);
 
-        // Контейнер для Picker
         LinearLayout pickerContainer = new LinearLayout(ctx);
         pickerContainer.setOrientation(LinearLayout.VERTICAL);
         pickerContainer.setVisibility(View.GONE);
@@ -246,7 +303,6 @@ public class MandreSettingsDex {
             if (callback != null) callback.run(val);
         });
         
-        // Блокировка перехвата тачей для скролла
         picker.setOnTouchListener((v, event) -> {
              if(event.getAction() == MotionEvent.ACTION_DOWN) v.getParent().requestDisallowInterceptTouchEvent(true);
              else if (event.getAction() == MotionEvent.ACTION_UP) v.getParent().requestDisallowInterceptTouchEvent(false);
@@ -257,13 +313,9 @@ public class MandreSettingsDex {
         pickerContainer.addView(picker);
         root.addView(pickerContainer);
 
-        // МГНОВЕННЫЙ ОБРАБОТЧИК КЛИКА
         root.setOnClickListener(v -> {
             boolean isVisible = pickerContainer.getVisibility() == View.VISIBLE;
             pickerContainer.setVisibility(isVisible ? View.GONE : View.VISIBLE);
-            
-            // Опционально: Анимация (TransitionManager) если доступен
-            // Но для скорости пока просто visibility
         });
 
         return root;
@@ -670,6 +722,8 @@ public class MandreSettingsDex {
 
     private interface OnBoolChange { void run(boolean val); }
     private interface OnIntChange { void run(int val); }
+    // НОВЫЙ ИНТЕРФЕЙС
+    private interface OnStringChange { void run(String val); }
 
     private static int dp(Context ctx, float dp) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, ctx.getResources().getDisplayMetrics());
