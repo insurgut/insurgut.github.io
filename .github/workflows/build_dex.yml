@@ -1,0 +1,60 @@
+name: Auto Compile Java to DEX
+
+# Срабатывает, когда ты меняешь java файлы
+on:
+  push:
+    paths:
+      - 'source/**.java'
+  workflow_dispatch: # Позволяет запустить вручную кнопку
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Скачиваем твой репозиторий
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Ставим Java 11 (нужна для javac)
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      # 3. Скачиваем android.jar (библиотека Android API 30)
+      - name: Download android.jar
+        run: |
+          curl -L -o android.jar https://github.com/Sable/android-platforms/raw/master/android-30/android.jar
+
+      # 4. Компилируем Java в .class
+      # Обрати внимание: javac создаст структуру папок dex/mandre/ на основе package
+      - name: Compile Java
+        run: |
+          mkdir -p build_temp
+          javac -cp android.jar -d build_temp source/madre.java
+          echo "✅ Compilation done. Files created:"
+          find build_temp
+
+      # 5. Превращаем .class в .dex с помощью d8 (встроен в Android SDK на GitHub)
+      - name: Convert to DEX
+        run: |
+          # Ищем d8 в Android SDK
+          BUILD_TOOLS_VERSION=$(ls $ANDROID_SDK_ROOT/build-tools/ | tail -n 1)
+          D8_PATH="$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/d8"
+          echo "Using d8 from: $D8_PATH"
+          
+          # Конвертируем все скомпилированные классы в source/MandreSettings.dex
+          # Мы кладем результат прямо в папку source
+          $D8_PATH --output source/ --lib android.jar build_temp/dex/mandre/*.class
+          
+          # Переименовываем classes.dex в MandreSettings.dex (если d8 создал classes.dex)
+          mv source/classes.dex source/MandreSettings.dex || true
+
+      # 6. Отправляем готовый .dex файл обратно в репозиторий
+      - name: Commit and Push DEX
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "🤖 Auto-compiled MandreSettings.dex"
+          file_pattern: 'source/*.dex'
