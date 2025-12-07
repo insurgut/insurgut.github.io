@@ -24,7 +24,7 @@ jobs:
           SHORT_SHA=$(git rev-parse --short HEAD)
           COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
           
-          # Время МСК + Ссылка
+          # Время МСК (UTC+3)
           TIME=$(TZ=Europe/Moscow date "+%Y-%m-%d %H:%M:%S")
           TIME_URL="https://time.is/Moscow"
 
@@ -38,21 +38,21 @@ jobs:
             echo "Processing: $FILE"
             if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
 
-            # --- ГЕНЕРАЦИЯ ПОДПИСИ (СТРОГО ДВОЙНЫЕ КАВЫЧКИ) ---
-            # Telegram принимает только <a href="...">, одинарные кавычки запрещены API
+            # --- ГЕНЕРАЦИЯ ПОДПИСИ (ЧЕРЕЗ ФАЙЛ) ---
+            # Мы записываем HTML в файл caption.txt, чтобы Bash не путал кавычки
             
-            LINK_COMMIT="<a href=\"$COMMIT_URL\">$SHORT_SHA</a>"
-            LINK_TIME="<a href=\"$TIME_URL\">$TIME</a>"
-            
-            CAP="$LINK_COMMIT • $LINK_TIME"
+            echo "<a href=\"$COMMIT_URL\">$SHORT_SHA</a> • <a href=\"$TIME_URL\">$TIME</a>" > caption.txt
 
-            echo "Generated Caption: $CAP"
+            echo "Sending..."
 
             # --- ОТПРАВКА ---
+            # -F "caption=<caption.txt" заставляет curl взять текст ИЗ ФАЙЛА.
+            # Это решает проблему Deploy Error (Rejected HTML).
+            
             curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
-                 -F caption="$CAP" \
+                 -F "caption=<caption.txt" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt || true
             
             # --- ПРОВЕРКА ---
@@ -60,8 +60,8 @@ jobs:
                 echo "::error::Upload Failed for $FILE"
                 cat response.json
                 
-                # Запасной вариант (Текст без ссылок, если вдруг API заглючит)
-                ERR_MSG="$SHORT_SHA • $TIME (HTML Error)"
+                # Если все равно ошибка - отправляем простой текст
+                ERR_MSG="$SHORT_SHA • $TIME (API Error)"
                 curl -s -F chat_id="$CHAT_ID" \
                      -F document=@"$FILE" \
                      -F caption="$ERR_MSG" \
