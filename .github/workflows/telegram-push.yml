@@ -15,84 +15,91 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
+          # Не падать при ошибках
           set +e
           
-          # Подготовка токена
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           git config core.quotePath false
 
-          # Диапазон коммитов
+          # Диапазон
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
 
-          # Цикл по файлам (исключая удаленные)
+          # Цикл
           git diff --diff-filter=ACMRT --name-only $RANGE -- source/ | while read -r FILE; do
+            echo "---------------------------------------------------"
             echo "Processing: $FILE"
             
             if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
 
-            # --- 1. ВЕРСИИ И СТРОКИ ---
+            # --- 1. ПОЛУЧЕНИЕ ДАННЫХ ---
             
-            # Получение старых данных
+            # Старая версия
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
               L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
-              # Ищем version или __version__, с " или '
-              V_OLD=$(git show "HEAD~1:$FILE" | grep -aP -o "(?:version|__version__)\s*=\s*['\"]\K[^'\"]+" | head -1)
+              # Ищем: version = "..." или __version__ = '...' (регистр не важен)
+              V_OLD=$(git show "HEAD~1:$FILE" | grep -iP -o "(?:version|__version__)\s*=\s*['\"]\K[^'\"]+" | head -1)
             else
               L_OLD="0"
               V_OLD="New"
             fi
             
-            # Получение новых данных
+            # Новая версия
             L_NEW=$(wc -l < "$FILE")
-            V_NEW=$(grep -aP -o "(?:version|__version__)\s*=\s*['\"]\K[^'\"]+" "$FILE" | head -1)
+            V_NEW=$(grep -iP -o "(?:version|__version__)\s*=\s*['\"]\K[^'\"]+" "$FILE" | head -1)
             
-            # Если версия не найдена, ставим заглушку, чтобы не ломать HTML
+            # Заглушки, если версия не найдена в коде
             if [ -z "$V_OLD" ]; then V_OLD="?"; fi
             if [ -z "$V_NEW" ]; then V_NEW="?"; fi
 
-            # --- 2. ПОДГОТОВКА ТЕКСТА ---
+            # --- 2. ПОДГОТОВКА HTML ---
             
-            # Экранируем HTML спецсимволы в сообщении коммита
+            # Экранирование для HTML (ОЧЕНЬ ВАЖНО)
+            # Заменяем & < > " на безопасные аналоги
             COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g')
             
             COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
             FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
             
-            # Формируем HTML. Используем printf для корректных переносов строк.
-            # Структура:
-            # Цитата ( Ссылка на коммит • версии • строки )
-            
-            CAP_HTML=$(printf "<blockquote><a href=\"%s\">%s</a>\n\nVer: %s ➝ <a href=\"%s\">%s</a>\nLines: %sL ➝ %sL</blockquote>" \
-              "$COMMIT_URL" "$COMMIT_MSG" "$V_OLD" "$FILE_URL" "$V_NEW" "$L_OLD" "$L_NEW")
+            # СТРОИМ ПОДПИСЬ (Строго в одну строку для переменной, но с тегами переноса)
+            # Вид:
+            # | Ссылка на коммит
+            # | vOld -> vNew • 10L -> 20L
+            CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a>&#10;&#10;Ver: $V_OLD ➝ <a href=\"$FILE_URL\">$V_NEW</a> • Lines: ${L_OLD}L ➝ ${L_NEW}L</blockquote>"
 
-            echo "Sending $FILE..."
+            echo "Sending Payload..."
 
             # --- 3. ОТПРАВКА ---
             
             curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
-                 -F caption="$CAP_HTML" \
+                 -F caption="$CAP" \
                  "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt || true
             
-            # Проверка на ошибки
+            # --- 4. ПРОВЕРКА ---
+            
             if ! grep -q '"ok":true' response.json; then
-                echo "::error::Primary upload failed!"
-                cat curl_log.txt
+                echo "::error::Primary HTML Upload Failed!"
+                
+                # Вывод ошибки в лог Github (чтобы мы поняли причину)
+                echo "Server Response:"
                 cat response.json
                 
-                # Если не сработал HTML (например, из-за скрытых символов), отправляем упрощенно
+                # ОТПРАВКА ЗАПАСНОГО ВАРИАНТА (Только если HTML сломался)
                 echo "Retrying plain text..."
+                SIMPLE_CAP="File: $FILE | Ver: $V_NEW"
+                
                 curl -s -F chat_id="$CHAT_ID" \
                      -F document=@"$FILE" \
-                     -F caption="File: $FILE (v$V_NEW). Error sending HTML." \
+                     -F caption="$SIMPLE_CAP" \
                      "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" || true
             else
                 echo "SUCCESS: Sent $FILE"
             fi
           done
+          
           exit 0
