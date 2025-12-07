@@ -14,8 +14,8 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
-          FILES=$(git diff --name-only HEAD~1 HEAD -- source/)
-          for FILE in $FILES; do
+          TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
+          git diff --name-only HEAD~1 HEAD -- source/ | while read -r FILE; do
             if [ ! -f "$FILE" ]; then continue; fi
             
             L_OLD=$(git show HEAD~1:"$FILE" 2>/dev/null | wc -l || echo "0")
@@ -24,7 +24,8 @@ jobs:
             V_OLD=$(git show HEAD~1:"$FILE" 2>/dev/null | grep -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
             V_NEW=$(grep -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
             
-            COMMIT_MSG=$(git log -1 --pretty=%s)
+            # Escape quotes and HTML chars in commit message to prevent bash/curl errors
+            COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/"/\\"/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g')
             COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
             FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
             
@@ -34,5 +35,5 @@ jobs:
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
-                 "https://api.telegram.org/bot$TOKEN/sendDocument"
+                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument"
           done
