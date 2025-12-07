@@ -1,32 +1,31 @@
-- name: Process & Send
+name: TG Deploy
+on:
+  push:
+    paths: ['source/**']
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: Process & Send
         env:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           git config core.quotePath false
-          
+
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
-          
-          git diff --name-only $RANGE -- source/ | while read -r FILE; do
-            echo "----------------------------------------------"
-            echo "Processing: $FILE"
-            
-            if [ ! -f "$FILE" ]; then 
-              echo "Skipping deleted file."
-              continue 
-            fi
-            
-            if [ ! -s "$FILE" ]; then
-              echo "Skipping empty file."
-              continue
-            fi
 
-            # Сбор данных
+          git diff --name-only $RANGE -- source/ | while read -r FILE; do
+            if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then continue; fi
+
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
               L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
               V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
@@ -34,6 +33,7 @@
               L_OLD="0"
               V_OLD="New"
             fi
+            
             L_NEW=$(wc -l < "$FILE")
             V_NEW=$(grep -a -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
             
@@ -43,28 +43,22 @@
             
             CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a> • $V_OLD to <a href=\"$FILE_URL\">$V_NEW</a> • ${L_OLD}L to ${L_NEW}L</blockquote>"
             
-            echo "Attempting upload..."
-            
-            # ВАЖНОЕ ИЗМЕНЕНИЕ: 
-            # 1. Убрали -s (silent)
-            # 2. Добавили -v (verbose) для отладки
-            # 3. Записываем вывод в переменную и выводим его
-            
-            OUTPUT=$(curl -v -F chat_id="$CHAT_ID" \
+            RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
-                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" 2>&1)
+                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument")
             
-            EXIT_CODE=$?
-            
-            if [ $EXIT_CODE -ne 0 ]; then
-                echo "::error::CURL CRASHED with code $EXIT_CODE"
-                echo "$OUTPUT"
-            elif [[ "$OUTPUT" != *"\"ok\":true"* ]]; then
-                echo "::error::TELEGRAM API ERROR"
-                echo "$OUTPUT"
-            else
-                echo "Success!"
+            if [[ "$RESPONSE" != *"\"ok\":true"* ]]; then
+              echo "Error sending $FILE. Server response: $RESPONSE"
+              
+              ERR_TEXT="⚠️ <b>Deploy Failed</b>%0AFile: $FILE%0A%0AError Log:%0A<pre>$RESPONSE</pre>"
+              
+              curl -s -X POST "https://api.telegram.org/bot$TRIMMED_TOKEN/sendMessage" \
+                -d chat_id="$CHAT_ID" \
+                -d parse_mode="HTML" \
+                -d text="$ERR_TEXT"
+                
+              exit 1
             fi
           done
