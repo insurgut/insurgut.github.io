@@ -1,87 +1,78 @@
-name: TG Deploy
-on:
-  push:
-    paths: ['source/**']
-jobs:
-  send:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Process & Send
+- name: Process & Send
         env:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
-          # Отключаем немедленный выход при ошибках, чтобы успеть отправить отчет
+          # Отключаем немедленное падение скрипта при ошибках
           set +e
           
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
-          echo "DEBUG: Token loaded (masked): ${TRIMMED_TOKEN:0:3}..."
+          echo "DEBUG: Token (masked): ${TRIMMED_TOKEN:0:5}..."
           
           git config core.quotePath false
-
+          
+          # Определяем диапазон коммитов
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             RANGE="HEAD~1 HEAD"
           else
             RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
           fi
 
-          git diff --name-only $RANGE -- source/ | while read -r FILE; do
+          # Используем diff-filter, чтобы сразу исключить удаленные файлы (D)
+          git diff --diff-filter=ACMRT --name-only $RANGE -- source/ | while read -r FILE; do
+            echo "---------------------------------------------------"
             echo "Processing: $FILE"
             
-            if [ ! -f "$FILE" ]; then 
-              echo "File not found (deleted/moved), skipping."
-              continue
-            fi
+            # Финальная проверка существования и пустоты
+            if [ ! -f "$FILE" ]; then echo "Skip: File not found"; continue; fi
+            if [ ! -s "$FILE" ]; then echo "Skip: File is empty"; continue; fi
             
-            if [ ! -s "$FILE" ]; then 
-              echo "File is empty, skipping."
-              continue
-            fi
+            # Диагностика файла перед отправкой (права, размер)
+            ls -la "$FILE"
 
+            # Сбор информации для подписи
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
-              L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
               V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
             else
-              L_OLD="0"
               V_OLD="New"
             fi
-            
-            L_NEW=$(wc -l < "$FILE")
             V_NEW=$(grep -a -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
             
             COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/"/\\"/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g')
             COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
             FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
-            
-            CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a> • $V_OLD to <a href=\"$FILE_URL\">$V_NEW</a> • ${L_OLD}L to ${L_NEW}L</blockquote>"
-            
-            # Записываем вывод и код возврата отдельно
-            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -F chat_id="$CHAT_ID" \
+            CAP="Update: $FILE ($V_OLD -> $V_NEW) - $COMMIT_MSG"
+
+            # 1. Сначала пробуем отправить
+            # Используем > output.txt вместо переменной, чтобы избежать ошибок subshell
+            curl -v -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
-                 -F parse_mode="HTML" \
                  -F caption="$CAP" \
-                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument")
+                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" > response.json 2> curl_log.txt
             
             CURL_EXIT_CODE=$?
-
-            # Если код выхода не 0 ИЛИ ответ сервера не содержит "ok":true
-            if [ $CURL_EXIT_CODE -ne 0 ] || [[ "$RESPONSE" != *"\"ok\":true"* ]]; then
-              echo "UPLOAD FAILED. Curl Code: $CURL_EXIT_CODE. Response: $RESPONSE"
-              
-              # Экранируем кавычки для JSON
-              SAFE_RESP=$(echo "$RESPONSE" | sed 's/"/\\"/g' | tail -c 200)
-              
-              ERR_MSG="⚠️ <b>Deploy Error</b>%0AFile: $FILE%0ACurl Code: $CURL_EXIT_CODE%0AResponse: <pre>$SAFE_RESP</pre>"
-              
-              # Отправляем текстовое сообщение об ошибке
-              curl -s -X POST "https://api.telegram.org/bot$TRIMMED_TOKEN/sendMessage" \
-                -d chat_id="$CHAT_ID" \
-                -d parse_mode="HTML" \
-                -d text="$ERR_MSG"
+            
+            # 2. Проверяем результат
+            if [ $CURL_EXIT_CODE -ne 0 ] || ! grep -q '"ok":true' response.json; then
+                echo "::error::Upload Failed for $FILE (Code: $CURL_EXIT_CODE)"
+                cat curl_log.txt
+                
+                # Подготовка текста ошибки
+                SERVER_RESP=$(cat response.json | sed 's/"/\\"/g' | tail -c 300)
+                CURL_LOG=$(cat curl_log.txt | tail -n 5 | sed 's/"/\\"/g')
+                
+                ERR_MSG="⚠️ <b>Deploy Error</b>%0AFile: $FILE%0AExit Code: $CURL_EXIT_CODE%0AResponse: $SERVER_RESP"
+                
+                # 3. Отправляем отчет об ошибке (текстом)
+                curl -s -X POST "https://api.telegram.org/bot$TRIMMED_TOKEN/sendMessage" \
+                     -d chat_id="$CHAT_ID" \
+                     -d parse_mode="HTML" \
+                     -d text="$ERR_MSG"
             else
-              echo "Success: $FILE"
+                echo "Success: $FILE sent."
             fi
           done
+          
+          # Принудительно завершаем успешно, чтобы step не помечался красным, 
+          # если мы обработали ошибку внутри
+          exit 0
