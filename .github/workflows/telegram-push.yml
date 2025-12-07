@@ -1,31 +1,42 @@
-name: TG Deploy
-on:
-  push:
-    paths: ['source/**']
-jobs:
-  send:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Process & Send
+- name: Process & Send
         env:
           TOKEN: ${{ secrets.TOKEN }}
           CHAT_ID: "6222585321"
         run: |
-          # Очистка токена от переносов строк
+          # 1. Очистка токена
           TRIMMED_TOKEN=$(echo "$TOKEN" | tr -d '\n' | tr -d '\r')
           
-          # Безопасный цикл по измененным файлам
-          git diff --name-only HEAD~1 HEAD -- source/ | while read -r FILE; do
-            # Если файл удален - пропускаем
-            if [ ! -f "$FILE" ]; then continue; fi
+          # 2. Настройка git, чтобы он не оборачивал имена с пробелами в кавычки
+          git config core.quotePath false
+          
+          # 3. Определение диапазона коммитов (защита от падения на первом коммите)
+          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            RANGE="HEAD~1 HEAD"
+          else
+            echo "First commit detected, diffing against empty tree"
+            # Магический хеш пустого дерева в git
+            RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD"
+          fi
+
+          # 4. Основной цикл
+          git diff --name-only $RANGE -- source/ | while read -r FILE; do
+            echo "Processing: $FILE"
             
-            # Проверка: существовал ли файл в прошлом коммите (для New File)
+            # Проверка существования
+            if [ ! -f "$FILE" ]; then 
+              echo "  - File not found (deleted?), skipping."
+              continue
+            fi
+            
+            # Проверка на пустой файл (curl code 26 fix)
+            if [ ! -s "$FILE" ]; then
+              echo "  - File is empty (0 bytes), skipping upload."
+              continue
+            fi
+
+            # Получение старой версии
             if git cat-file -e "HEAD~1:$FILE" 2>/dev/null; then
               L_OLD=$(git show "HEAD~1:$FILE" | wc -l)
-              # grep -a позволяет читать бинарники как текст (для .dex)
               V_OLD=$(git show "HEAD~1:$FILE" | grep -a -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
             else
               L_OLD="0"
@@ -35,16 +46,22 @@ jobs:
             L_NEW=$(wc -l < "$FILE")
             V_NEW=$(grep -a -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
             
-            # Экранирование HTML символов и кавычек для bash/json
             COMMIT_MSG=$(git log -1 --pretty=%s | sed 's/"/\\"/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g')
             COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
             FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
             
             CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a> • $V_OLD to <a href=\"$FILE_URL\">$V_NEW</a> • ${L_OLD}L to ${L_NEW}L</blockquote>"
             
-            curl -s -F chat_id="$CHAT_ID" \
+            # Отправка с обработкой ошибок ( || true не даст упасть всему джобу)
+            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -F chat_id="$CHAT_ID" \
                  -F document=@"$FILE" \
                  -F parse_mode="HTML" \
                  -F caption="$CAP" \
-                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument"
+                 "https://api.telegram.org/bot$TRIMMED_TOKEN/sendDocument" || echo "CURL_FAIL")
+            
+            if [[ "$RESPONSE" == *"CURL_FAIL"* ]]; then
+               echo "::error::Curl failed to upload $FILE (Exit Code 26 or other)"
+            else
+               echo "  - Sent successfully."
+            fi
           done
