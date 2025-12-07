@@ -1,0 +1,38 @@
+name: TG Deploy
+on:
+  push:
+    paths: ['source/**']
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: Process & Send
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+          CHAT_ID: "6222585321"
+        run: |
+          FILES=$(git diff --name-only HEAD~1 HEAD -- source/)
+          for FILE in $FILES; do
+            if [ ! -f "$FILE" ]; then continue; fi
+            
+            L_OLD=$(git show HEAD~1:"$FILE" 2>/dev/null | wc -l || echo "0")
+            L_NEW=$(wc -l < "$FILE")
+            
+            V_OLD=$(git show HEAD~1:"$FILE" 2>/dev/null | grep -oP 'version.*?=\s*"\K[^"]+' | head -1 || echo "?")
+            V_NEW=$(grep -oP 'version.*?=\s*"\K[^"]+' "$FILE" | head -1 || echo "?")
+            
+            COMMIT_MSG=$(git log -1 --pretty=%s)
+            COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+            FILE_URL="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/$FILE"
+            
+            CAP="<blockquote><a href=\"$COMMIT_URL\">$COMMIT_MSG</a> • $V_OLD to <a href=\"$FILE_URL\">$V_NEW</a> • ${L_OLD}L to ${L_NEW}L</blockquote>"
+            
+            curl -s -F chat_id="$CHAT_ID" \
+                 -F document=@"$FILE" \
+                 -F parse_mode="HTML" \
+                 -F caption="$CAP" \
+                 "https://api.telegram.org/bot$TOKEN/sendDocument"
+          done
