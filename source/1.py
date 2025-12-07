@@ -1,5 +1,5 @@
 import requests
-import os
+import oss
 import tkinter as tk
 from tkinter import filedialog
 import base64
