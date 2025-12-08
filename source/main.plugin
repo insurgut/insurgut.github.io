@@ -14,10 +14,11 @@ from android.webkit import WebView, WebViewClient
 from android.widget import FrameLayout
 from android.view import ViewGroup
 from java.lang import Runnable
+from java import jclass, dynamic_proxy
+from android.os import Bundle
 
 try:
-    from java import jclass, dynamic_proxy
-    XposedBridge = jclass("de.robv.android.xposed.XposedBridge")  # AliuHook provides XposedBridge compatibility
+    XposedBridge = jclass("de.robv.android.xposed.XposedBridge")
     SettingsActivity = jclass("org.telegram.ui.SettingsActivity")
     JAVA_CLASSES_FOUND = True
 except Exception as e:
@@ -31,45 +32,7 @@ class HTMLOverlayHook(MethodHook):
 
     def beforeHookedMethod(self, param):
         try:
-            run_on_ui_thread(Runnable() {
-                def run(self):
-                    activity = param.thisObject
-                    if not activity or self.plugin.overlay:
-                        return
-
-                    # Simple HTML content (customize as needed)
-                    html_content = """
-                    <html>
-                        <head><title>Settings Overlay</title></head>
-                        <body style="background-color: #f0f0f0; font-family: Arial; padding: 20px;">
-                            <h1>Hello from HTML Overlay!</h1>
-                            <p>This is a custom HTML page overlaid on top of the settings screen.</p>
-                            <p>You can add any HTML/JS/CSS here.</p>
-                            <script>alert('Welcome to Settings Overlay!');</script>
-                        </body>
-                    </html>
-                    """
-
-                    # Create WebView
-                    webview = WebView(activity)
-                    webview.getSettings().setJavaScriptEnabled(True)
-                    webview.setWebViewClient(WebViewClient())
-                    webview.loadData(html_content, "text/html", "UTF-8")
-
-                    # Create overlay container
-                    overlay = FrameLayout(activity)
-                    overlay.setLayoutParams(ViewGroup.LayoutParams(-1, -1))
-                    overlay.setBackgroundColor(0x80000000)  # Semi-transparent black background
-                    overlay.addView(webview, ViewGroup.LayoutParams(-1, -1))
-                    overlay.setClickable(True)  # Prevent interaction bleed if needed
-
-                    # Add to decor view (on top of everything)
-                    decor_view = activity.getWindow().getDecorView()
-                    if isinstance(decor_view, ViewGroup):
-                        decor_view.addView(overlay)
-                        self.plugin.overlay = overlay
-                        log("[HTML Overlay] Overlay added to settings screen")
-            }.run())
+            run_on_ui_thread(lambda: self.plugin._add_overlay(param.thisObject))
         except Exception as e:
             log(f"[HTML Overlay] Error in beforeHookedMethod: {traceback.format_exc()}")
 
@@ -80,22 +43,67 @@ class HTMLDestroyHook(MethodHook):
 
     def afterHookedMethod(self, param):
         try:
-            run_on_ui_thread(Runnable() {
-                def run(self):
-                    if self.plugin.overlay:
-                        overlay = self.plugin.overlay
-                        parent = overlay.getParent()
-                        if isinstance(parent, ViewGroup):
-                            parent.removeView(overlay)
-                        self.plugin.overlay = None
-                        log("[HTML Overlay] Overlay removed from settings screen")
-            }.run())
+            run_on_ui_thread(lambda: self.plugin._remove_overlay())
         except Exception as e:
             log(f"[HTML Overlay] Error in afterHookedMethod: {traceback.format_exc()}")
 
 class HTMLOverlayPlugin(BasePlugin):
     def __init__(self):
         self.overlay = None
+        self.webview = None
+
+    def _add_overlay(self, activity):
+        if not activity or self.overlay:
+            return
+
+        try:
+            # Simple HTML content (customize as needed)
+            html_content = """
+            <html>
+                <head><title>Settings Overlay</title></head>
+                <body style="background-color: #f0f0f0; font-family: Arial; padding: 20px;">
+                    <h1>Hello from HTML Overlay!</h1>
+                    <p>This is a custom HTML page overlaid on top of the settings screen.</p>
+                    <p>You can add any HTML/JS/CSS here.</p>
+                    <script>alert('Welcome to Settings Overlay!');</script>
+                </body>
+            </html>
+            """
+
+            # Create WebView
+            self.webview = WebView(activity)
+            self.webview.getSettings().setJavaScriptEnabled(True)
+            self.webview.setWebViewClient(WebViewClient())
+            self.webview.loadData(html_content, "text/html", "UTF-8")
+
+            # Create overlay container
+            self.overlay = FrameLayout(activity)
+            self.overlay.setLayoutParams(ViewGroup.LayoutParams(-1, -1))
+            self.overlay.setBackgroundColor(0x80000000)  # Semi-transparent black background
+            self.overlay.addView(self.webview, ViewGroup.LayoutParams(-1, -1))
+            self.overlay.setClickable(True)  # Prevent interaction bleed if needed
+
+            # Add to decor view (on top of everything)
+            decor_view = activity.getWindow().getDecorView()
+            if isinstance(decor_view, ViewGroup):
+                decor_view.addView(self.overlay)
+                log("[HTML Overlay] Overlay added to settings screen")
+        except Exception as e:
+            log(f"[HTML Overlay] Error adding overlay: {traceback.format_exc()}")
+
+    def _remove_overlay(self):
+        try:
+            if self.overlay:
+                parent = self.overlay.getParent()
+                if isinstance(parent, ViewGroup):
+                    parent.removeView(self.overlay)
+                if self.webview:
+                    self.webview.destroy()
+                self.overlay = None
+                self.webview = None
+                log("[HTML Overlay] Overlay removed from settings screen")
+        except Exception as e:
+            log(f"[HTML Overlay] Error removing overlay: {traceback.format_exc()}")
 
     def on_plugin_load(self):
         if not JAVA_CLASSES_FOUND:
@@ -104,12 +112,14 @@ class HTMLOverlayPlugin(BasePlugin):
 
         try:
             # Hook onCreate to add overlay
+            on_create_method = SettingsActivity.getDeclaredMethod("onCreate", Bundle)
             create_hook = HTMLOverlayHook(self)
-            XposedBridge.hookMethod(SettingsActivity.getDeclaredMethod("onCreate", jclass("android.os.Bundle")), create_hook)
+            XposedBridge.hookMethod(on_create_method, create_hook)
 
             # Hook onDestroy to remove overlay
+            on_destroy_method = SettingsActivity.getDeclaredMethod("onDestroy")
             destroy_hook = HTMLDestroyHook(self)
-            XposedBridge.hookMethod(SettingsActivity.getDeclaredMethod("onDestroy"), destroy_hook)
+            XposedBridge.hookMethod(on_destroy_method, destroy_hook)
 
             self.log("[HTML Overlay] Hooks installed successfully.")
         except Exception as e:
