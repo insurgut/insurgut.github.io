@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sliders • TG Colors</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{margin:0;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3rem;font-family:system-ui,sans-serif;background:var(--tg-theme-bg-color,#000);color:var(--tg-theme-text-color,#fff);padding:2rem}
+.slider-item{display:flex;flex-direction:column;gap:.75rem;width:100%;max-width:400px}
+.slider-header{display:flex;justify-content:space-between;align-items:center}
+.slider-header h3{margin:0;font-size:1.125rem;font-weight:600;color:var(--tg-theme-text-color,#fff)}
+.slider-header span{font-size:1rem;font-weight:600;color:var(--tg-theme-button-color,#0a84ff)}
+input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:linear-gradient(to right,var(--tg-theme-button-color,#0a84ff) 0%,var(--tg-theme-button-color,#0a84ff) 50%,var(--tg-theme-hint-color,#888) 50%,var(--tg-theme-hint-color,#888) 100%);outline:none;transition:opacity .2s}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--tg-theme-button-color,#0a84ff);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--tg-theme-button-color,#0a84ff);cursor:pointer;border:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.discrete-slider{display:flex;flex-direction:column;gap:.75rem;width:100%;max-width:400px}
+.discrete-track{position:relative;height:4px;background:var(--tg-theme-hint-color,#888);border-radius:2px;cursor:pointer}
+.discrete-fill{position:absolute;height:100%;background:var(--tg-theme-button-color,#0a84ff);border-radius:2px;transition:width .2s}
+.discrete-thumb{position:absolute;width:18px;height:18px;border-radius:50%;background:var(--tg-theme-button-color,#0a84ff);top:50%;transform:translate(-50%,-50%);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:left .2s}
+.discrete-steps{display:flex;justify-content:space-between;margin-top:.5rem}
+.discrete-step{font-size:.75rem;color:var(--tg-theme-subtitle-text-color,#999)}
+</style>
+</head>
+<body>
+<div class="slider-item">
+<div class="slider-header">
+<h3>Громкость</h3>
+<span id="volume-value">50%</span>
+</div>
+<input type="range" id="volume" min="0" max="100" value="50">
+</div>
+
+<div class="discrete-slider">
+<div class="slider-header">
+<h3>Качество</h3>
+<span id="quality-label">Среднее</span>
+</div>
+<div class="discrete-track" id="quality-track">
+<div class="discrete-fill" id="quality-fill"></div>
+<div class="discrete-thumb" id="quality-thumb"></div>
+</div>
+<div class="discrete-steps">
+<span>Низкое</span>
+<span>Среднее</span>
+<span>Высокое</span>
+<span>HD</span>
+</div>
+</div>
+
+<script>
+if(window.Telegram?.WebApp){
+  const tg=Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+  document.body.style.background=tg.backgroundColor;
+  const params=tg.themeParams;
+  Object.entries(params).forEach(([k,v])=>{
+    document.documentElement.style.setProperty(`--tg-theme-${k.replace(/([A-Z])/g,m=>'-'+m.toLowerCase())}`,v);
+  });
+}
+
+// Continuous slider
+const volumeSlider = document.getElementById('volume');
+const volumeValue = document.getElementById('volume-value');
+
+function updateVolumeBackground() {
+  const value = volumeSlider.value;
+  const percent = (value / volumeSlider.max) * 100;
+  volumeSlider.style.background = `linear-gradient(to right, var(--tg-theme-button-color, #0a84ff) 0%, var(--tg-theme-button-color, #0a84ff) ${percent}%, var(--tg-theme-hint-color, #888) ${percent}%, var(--tg-theme-hint-color, #888) 100%)`;
+  volumeValue.textContent = value + '%';
+}
+
+volumeSlider.addEventListener('input', updateVolumeBackground);
+updateVolumeBackground();
+
+// Discrete slider
+const qualityLabels = ['Низкое', 'Среднее', 'Высокое', 'HD'];
+let currentQuality = 1;
+const qualityTrack = document.getElementById('quality-track');
+const qualityFill = document.getElementById('quality-fill');
+const qualityThumb = document.getElementById('quality-thumb');
+const qualityLabel = document.getElementById('quality-label');
+
+function updateQuality() {
+  const percent = (currentQuality / (qualityLabels.length - 1)) * 100;
+  qualityFill.style.width = percent + '%';
+  qualityThumb.style.left = percent + '%';
+  qualityLabel.textContent = qualityLabels[currentQuality];
+}
+
+qualityTrack.addEventListener('click', (e) => {
+  const rect = qualityTrack.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const percent = x / rect.width;
+  currentQuality = Math.round(percent * (qualityLabels.length - 1));
+  updateQuality();
+});
+
+let isDragging = false;
+qualityThumb.addEventListener('mousedown', () => isDragging = true);
+document.addEventListener('mouseup', () => isDragging = false);
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const rect = qualityTrack.getBoundingClientRect();
+  const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+  const percent = x / rect.width;
+  currentQuality = Math.round(percent * (qualityLabels.length - 1));
+  updateQuality();
+});
+
+qualityThumb.addEventListener('touchstart', () => isDragging = true);
+document.addEventListener('touchend', () => isDragging = false);
+document.addEventListener('touchmove', (e) => {
+  if (!isDragging) return;
+  const rect = qualityTrack.getBoundingClientRect();
+  const touch = e.touches[0];
+  const x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
+  const percent = x / rect.width;
+  currentQuality = Math.round(percent * (qualityLabels.length - 1));
+  updateQuality();
+});
+
+updateQuality();
+</script>
+</body>
+</html>
