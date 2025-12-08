@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cap Card</title>
+<title>Cap Card • TG Colors</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--padding:.5rem;--radius:16px;--size:52px;--border:2}
 body{margin:0;min-height:100dvh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:var(--tg-theme-bg-color,#000);color:var(--tg-theme-text-color,#fff)}
-aside{display:flex;gap:.5rem;align-items:center;width:340px;padding:var(--padding);border-radius:var(--radius);border:calc(var(--border)*1px) solid var(--tg-theme-hint-color);background:var(--tg-theme-secondary-bg-color,#1a1a1a);backdrop-filter:blur(12px) saturate(2.8) brightness(1.25);box-shadow:0 4px 30px rgba(0,0,0,.1)}
+aside{display:flex;gap:.5rem;align-items:center;width:340px;padding:var(--padding);border-radius:var(--radius);border:calc(var(--border)*1px) solid var(--tg-theme-hint-color,#888);background:var(--tg-theme-secondary-bg-color,#1a1a1a);backdrop-filter:blur(12px) saturate(2.8) brightness(1.25);box-shadow:0 4px 30px rgba(0,0,0,.1)}
 img{width:var(--size);aspect-ratio:1;border-radius:calc(var(--radius) - var(--padding));object-fit:cover}
 .info{flex:1}
 .info span:first-child{font-weight:600;font-size:1rem;display:block}
@@ -26,9 +27,15 @@ button{height:var(--size);padding:0 1rem;border:none;border-radius:calc(var(--ra
 </aside>
 <script>
 if(window.Telegram?.WebApp){
-Telegram.WebApp.ready();
-Telegram.WebApp.expand();
-document.body.style.background=Telegram.WebApp.backgroundColor;
+  const tg=Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+  document.body.style.background=tg.backgroundColor;
+  // Ручная установка CSS vars из themeParams (для надёжности, даже если CSS vars не сработали)
+  const params=tg.themeParams;
+  Object.entries(params).forEach(([k,v])=>{
+    document.documentElement.style.setProperty(`--tg-theme-${k.replace(/([A-Z])/g,m=>' -'+m.toLowerCase())}`,v);
+  });
 }
 </script>
 </body>
