@@ -1,237 +1,118 @@
-# META
-__id__ = "tg_styled_html_fix"
-__name__ = "Native HTML Settings"
-__description__ = "Полноэкранный HTML интерфейс с цветами темы."
+__id__ = "html_overlay_settings"
+__name__ = "HTML Overlay on Settings"
+__description__ = "Displays an HTML page overlay directly on top of the settings screen when entering settings. The overlay disappears when exiting."
 __author__ = "MandreAI"
-__version__ = "1.3"
+__version__ = "1.0.0"
 __min_version__ = "10.14.4"
+__icon__ = "settings"  # Use a default icon if available; otherwise, omit or use a resource
 
-# IMPORTS
 import traceback
-from base_plugin import BasePlugin
-from client_utils import get_last_fragment
-from android_utils import run_on_ui_thread, log
-from ui.settings import Header, Text, Divider
-from ui.bulletin import BulletinHelper
-
-# JAVA REFLECTION
+from base_plugin import BasePlugin, MethodHook
 from hook_utils import find_class
-from java import dynamic_proxy
+from android_utils import run_on_ui_thread, log
+from android.webkit import WebView, WebViewClient
+from android.widget import FrameLayout
+from android.view import ViewGroup
+from java.lang import Runnable
 
 try:
-    # Android Classes
-    Dialog = find_class("android.app.Dialog")
-    ViewGroup = find_class("android.view.ViewGroup")
-    Color = find_class("android.graphics.Color")
-    
-    # WebView Classes
-    WebView = find_class("android.webkit.WebView")
-    DownloadListener = find_class("android.webkit.DownloadListener")
-    
-    # Telegram Theme Class
-    Theme = find_class("org.telegram.ui.ActionBar.Theme")
-    
-    JAVA_AVAILABLE = True
+    from java import jclass, dynamic_proxy
+    XposedBridge = jclass("de.robv.android.xposed.XposedBridge")  # AliuHook provides XposedBridge compatibility
+    SettingsActivity = jclass("org.telegram.ui.SettingsActivity")
+    JAVA_CLASSES_FOUND = True
 except Exception as e:
-    log(f"TgHtml [FATAL]: {e}")
-    JAVA_AVAILABLE = False
+    log(f"[HTML Overlay] FATAL: Failed to import core Java classes: {e}")
+    JAVA_CLASSES_FOUND = False
 
-
-# --- UTILS ---
-
-def get_hex_color(key_constant):
-    """Конвертирует цвет Telegram темы в HEX для HTML"""
-    try:
-        color_int = Theme.getColor(key_constant)
-        # Формат #RRGGBB
-        return "#%06x" % (color_int & 0xFFFFFF)
-    except:
-        return "#000000"
-
-# --- HTML GENERATOR ---
-
-def generate_html_content():
-    # Получаем цвета
-    c_bg = get_hex_color(Theme.key_windowBackgroundWhite)
-    c_text = get_hex_color(Theme.key_windowBackgroundWhiteBlackText)
-    c_text_sec = get_hex_color(Theme.key_windowBackgroundWhiteGrayText)
-    c_btn_bg = get_hex_color(Theme.key_featuredStickers_addButton)
-    c_btn_text = get_hex_color(Theme.key_featuredStickers_buttonText)
-    c_card_bg = get_hex_color(Theme.key_windowBackgroundGray)
-
-    # Используем ОБЫЧНУЮ строку (не f-строку), чтобы избежать конфликтов синтаксиса
-    # Заполнители: _BG_, _TEXT_, и т.д.
-    html_template = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-        <style>
-            body {
-                background-color: _BG_;
-                color: _TEXT_;
-                font-family: -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
-                margin: 0;
-                padding: 0;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 100vh;
-                user-select: none;
-            }
-            
-            .container {
-                width: 90%;
-                max-width: 400px;
-                background-color: _BG_;
-                padding: 20px;
-                border-radius: 12px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-                text-align: center;
-                border: 1px solid _CARD_BG_;
-            }
-
-            h2 {
-                margin-top: 0;
-                color: _TEXT_;
-            }
-
-            p {
-                color: _TEXT_SEC_;
-                font-size: 15px;
-                line-height: 1.5;
-                margin-bottom: 25px;
-            }
-
-            .tg-button {
-                display: block;
-                width: 100%;
-                background-color: _BTN_BG_;
-                color: _BTN_TEXT_;
-                padding: 12px 0;
-                border-radius: 8px;
-                text-decoration: none;
-                font-weight: 500;
-                font-size: 14px;
-                text-transform: uppercase;
-                border: none;
-                cursor: pointer;
-                transition: opacity 0.2s;
-                box-sizing: border-box;
-            }
-
-            .tg-button:active {
-                opacity: 0.8;
-            }
-
-            .footer {
-                margin-top: 20px;
-                font-size: 12px;
-                color: _TEXT_SEC_;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h2>Настройки Плагина</h2>
-            <p>
-                Этот интерфейс отображается поверх Telegram.
-                Цвета берутся из вашей текущей темы.
-            </p>
-            
-            <!-- Ссылка-триггер для закрытия -->
-            <a href="http://action.close_window" class="tg-button">
-                Вернуться назад
-            </a>
-            
-            <div class="footer">Native Colors Injection Fixed</div>
-        </div>
-    </body>
-    </html>
-    """
-    
-    # Заменяем плейсхолдеры на реальные цвета
-    html = html_template.replace("_BG_", c_bg)
-    html = html.replace("_TEXT_", c_text)
-    html = html.replace("_TEXT_SEC_", c_text_sec)
-    html = html.replace("_BTN_BG_", c_btn_bg)
-    html = html.replace("_BTN_TEXT_", c_btn_text)
-    html = html.replace("_CARD_BG_", c_card_bg)
-    
-    return html
-
-# --- LISTENERS ---
-
-class CloseActionListener(dynamic_proxy(DownloadListener)):
-    def __init__(self, dialog):
+class HTMLOverlayHook(MethodHook):
+    def __init__(self, plugin):
         super().__init__()
-        self.dialog = dialog
+        self.plugin = plugin
 
-    def onDownloadStart(self, url, userAgent, contentDisposition, mimetype, contentLength):
-        url_str = str(url)
-        if "action.close_window" in url_str:
-            run_on_ui_thread(lambda: self.dialog.dismiss())
-
-
-# --- MAIN PLUGIN CLASS ---
-
-class TgNativeHtmlPluginFix(BasePlugin):
-    def __init__(self):
-        super().__init__()
-        self.dialog = None
-
-    def create_settings(self):
-        # Автоматическое открытие при входе
-        if JAVA_AVAILABLE:
-            run_on_ui_thread(self._open_html_dialog)
-        else:
-            BulletinHelper.show_error("Ошибка: Java классы не найдены")
-
-        # Кнопка для ручного открытия (если авто не сработало или закрыли)
-        return [
-            Header(text="Интерфейс"),
-            Text(
-                text="Открыть интерфейс", 
-                icon="msg_settings", 
-                on_click=lambda: run_on_ui_thread(self._open_html_dialog)
-            ),
-            Divider()
-        ]
-
-    def _open_html_dialog(self):
+    def beforeHookedMethod(self, param):
         try:
-            fragment = get_last_fragment()
-            if not fragment or not fragment.getParentActivity():
-                return
+            run_on_ui_thread(Runnable() {
+                def run(self):
+                    activity = param.thisObject
+                    if not activity or self.plugin.overlay:
+                        return
 
-            activity = fragment.getParentActivity()
+                    # Simple HTML content (customize as needed)
+                    html_content = """
+                    <html>
+                        <head><title>Settings Overlay</title></head>
+                        <body style="background-color: #f0f0f0; font-family: Arial; padding: 20px;">
+                            <h1>Hello from HTML Overlay!</h1>
+                            <p>This is a custom HTML page overlaid on top of the settings screen.</p>
+                            <p>You can add any HTML/JS/CSS here.</p>
+                            <script>alert('Welcome to Settings Overlay!');</script>
+                        </body>
+                    </html>
+                    """
 
-            # Тема: Theme_DeviceDefault_NoActionBar_Fullscreen
-            self.dialog = Dialog(activity, 16973831)
-            
-            webview = WebView(activity)
-            
-            # Ставим фон загрузки
-            bg_color_int = Theme.getColor(Theme.key_windowBackgroundWhite)
-            webview.setBackgroundColor(bg_color_int)
-            
-            settings = webview.getSettings()
-            settings.setJavaScriptEnabled(False)
-            
-            html_content = generate_html_content()
-            
-            webview.setDownloadListener(CloseActionListener(self.dialog))
-            webview.loadDataWithBaseURL(None, html_content, "text/html", "utf-8", None)
+                    # Create WebView
+                    webview = WebView(activity)
+                    webview.getSettings().setJavaScriptEnabled(True)
+                    webview.setWebViewClient(WebViewClient())
+                    webview.loadData(html_content, "text/html", "UTF-8")
 
-            self.dialog.setContentView(webview)
-            self.dialog.setCancelable(True)
-            self.dialog.show()
+                    # Create overlay container
+                    overlay = FrameLayout(activity)
+                    overlay.setLayoutParams(ViewGroup.LayoutParams(-1, -1))
+                    overlay.setBackgroundColor(0x80000000)  # Semi-transparent black background
+                    overlay.addView(webview, ViewGroup.LayoutParams(-1, -1))
+                    overlay.setClickable(True)  # Prevent interaction bleed if needed
 
-            window = self.dialog.getWindow()
-            if window:
-                window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                
+                    # Add to decor view (on top of everything)
+                    decor_view = activity.getWindow().getDecorView()
+                    if isinstance(decor_view, ViewGroup):
+                        decor_view.addView(overlay)
+                        self.plugin.overlay = overlay
+                        log("[HTML Overlay] Overlay added to settings screen")
+            }.run())
         except Exception as e:
-            log(f"TgHtml [ERROR]: {traceback.format_exc()}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Не удалось открыть интерфейс"))
+            log(f"[HTML Overlay] Error in beforeHookedMethod: {traceback.format_exc()}")
+
+class HTMLDestroyHook(MethodHook):
+    def __init__(self, plugin):
+        super().__init__()
+        self.plugin = plugin
+
+    def afterHookedMethod(self, param):
+        try:
+            run_on_ui_thread(Runnable() {
+                def run(self):
+                    if self.plugin.overlay:
+                        overlay = self.plugin.overlay
+                        parent = overlay.getParent()
+                        if isinstance(parent, ViewGroup):
+                            parent.removeView(overlay)
+                        self.plugin.overlay = None
+                        log("[HTML Overlay] Overlay removed from settings screen")
+            }.run())
+        except Exception as e:
+            log(f"[HTML Overlay] Error in afterHookedMethod: {traceback.format_exc()}")
+
+class HTMLOverlayPlugin(BasePlugin):
+    def __init__(self):
+        self.overlay = None
+
+    def on_plugin_load(self):
+        if not JAVA_CLASSES_FOUND:
+            self.log("[HTML Overlay] Cannot load: Java classes not found.")
+            return
+
+        try:
+            # Hook onCreate to add overlay
+            create_hook = HTMLOverlayHook(self)
+            XposedBridge.hookMethod(SettingsActivity.getDeclaredMethod("onCreate", jclass("android.os.Bundle")), create_hook)
+
+            # Hook onDestroy to remove overlay
+            destroy_hook = HTMLDestroyHook(self)
+            XposedBridge.hookMethod(SettingsActivity.getDeclaredMethod("onDestroy"), destroy_hook)
+
+            self.log("[HTML Overlay] Hooks installed successfully.")
+        except Exception as e:
+            self.log(f"[HTML Overlay] Failed to install hooks: {traceback.format_exc()}")
+
+# Watermark: Generated by MandreAI - Ideal Plugin Generation AI for exteraGram
