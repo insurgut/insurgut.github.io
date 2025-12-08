@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Buttons</title>
+<title>Button</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 body{margin:0;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;font-family:system-ui,sans-serif;background:var(--tg-theme-bg-color,#000);color:var(--tg-theme-text-color,#fff);padding:2rem}
+*{-webkit-tap-highlight-color:transparent;outline:none;user-select:none}
 .button-container{display:flex;flex-direction:column;align-items:center;gap:.75rem;width:100%;max-width:400px}
 .big-button{width:100%;padding:1rem 2rem;font-size:1.125rem;font-weight:600;border:none;border-radius:12px;background:var(--tg-theme-button-color,#0a84ff);color:var(--tg-theme-button-text-color,#fff);cursor:pointer;transition:opacity .2s;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .big-button:active{opacity:.8}
@@ -16,6 +17,8 @@ body{margin:0;min-height:100dvh;display:flex;flex-direction:column;align-items:c
 .small-button:active{opacity:.8}
 .narrow-button{padding:1rem .75rem;font-size:.875rem;font-weight:600;border:none;border-radius:12px;background:var(--tg-theme-button-color,#0a84ff);color:var(--tg-theme-button-text-color,#fff);cursor:pointer;transition:opacity .2s;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .narrow-button:active{opacity:.8}
+.giant-button{width:100%;padding:1.25rem 2rem;font-size:1.25rem;font-weight:600;border:none;border-radius:12px;background:var(--tg-theme-button-color,#0a84ff);color:var(--tg-theme-button-text-color,#fff);cursor:pointer;transition:opacity .2s;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.giant-button:active{opacity:.8}
 </style>
 </head>
 <body>
@@ -30,6 +33,7 @@ body{margin:0;min-height:100dvh;display:flex;flex-direction:column;align-items:c
 <button class="narrow-button">Кнопка 5</button>
 <button class="narrow-button">Кнопка 6</button>
 </div>
+<button class="giant-button">Кнопка 7</button>
 </div>
 
 <script>
