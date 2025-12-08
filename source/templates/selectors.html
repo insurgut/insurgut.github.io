@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Selector</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--bg:var(--tg-theme-bg-color,#000000);--surface:var(--tg-theme-secondary-bg-color,#1c1c1e);--primary:var(--tg-theme-button-color,#0a84ff);--text:var(--tg-theme-text-color,#ffffff);--text-sec:var(--tg-theme-hint-color,#8e8e93);--btn-text:var(--tg-theme-button-text-color,#ffffff)}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;margin:0;padding:20px;user-select:none;-webkit-tap-highlight-color:transparent}
+.repo-item{display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:8px;background:var(--surface);border-radius:12px;cursor:pointer;border:1px solid transparent;transition:transform .1s,background .2s}
+.repo-item:active{transform:scale(.98)}
+.repo-item.selected{border-color:var(--primary)}
+.repo-item.selected .repo-check{background:var(--primary);border-color:var(--primary);color:var(--btn-text)}
+.repo-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--text-sec);color:transparent;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s;flex-shrink:0}
+.repo-info{flex:1;overflow:hidden}
+.repo-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16px}
+.repo-desc{font-size:13px;color:var(--text-sec);margin-top:2px}
+</style>
+</head>
+<body>
+<div id="directory-list"></div>
+<script>
+const tg=window.Telegram.WebApp;tg.ready();
+const items=[
+{title:"Заголовок 1",subtitle:"Подзаголовок 1"},
+{title:"Заголовок 2",subtitle:"Подзаголовок 2"},
+{title:"Заголовок 3",subtitle:"Подзаголовок 3"},
+{title:"Заголовок 4",subtitle:"Подзаголовок 4"},
+{title:"Заголовок 5",subtitle:"Подзаголовок 5"},
+{title:"Заголовок 6",subtitle:"Подзаголовок 6"}
+];
+const listContainer=document.getElementById('directory-list');
+items.forEach(item=>{
+const el=document.createElement('div');
+el.className='repo-item';
+el.innerHTML=`
+<div class="repo-check"><i class="fas fa-check"></i></div>
+<div class="repo-info">
+<div class="repo-name">${item.title}</div>
+<div class="repo-desc">${item.subtitle}</div>
+</div>`;
+el.onclick=()=>{
+document.querySelectorAll('.repo-item').forEach(i=>i.classList.remove('selected'));
+el.classList.add('selected');
+tg.HapticFeedback.selectionChanged();
+};
+listContainer.appendChild(el);
+});
+</script>
+</body>
+</html>
