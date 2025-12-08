@@ -2,68 +2,66 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>iOS Цикличный барабан</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Барабанный селектор</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--bg:var(--tg-theme-bg-color,#000);--text:var(--tg-theme-text-color,#fff);--hint:var(--tg-theme-hint-color,#888);--primary:var(--tg-theme-button-color,#0a84ff)}
-body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;display:flex;flex-direction:column;overflow:hidden}
-.header{padding:20px 20px 10px;text-align:center;font-size:20px;font-weight:600}
-.picker-wrapper{flex:1;position:relative;overflow:hidden}
-.picker{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
-.gradient-top,.gradient-bottom{position:absolute;left:0;width:100%;height:80px;pointer-events:none;z-index:10}
-.gradient-top{top:0;background:linear-gradient(var(--bg),transparent)}
-.gradient-bottom{bottom:0;background:linear-gradient(transparent,var(--bg))}
-.highlight{position:absolute;left:0;right:0;top:50%;height:44px;border-top:1px solid #333;border-bottom:1px solid #333;transform:translateY(-50%);pointer-events:none;z-index:5}
-.wheel{position:relative;height:44px;font-size:28px;font-weight:600;text-align:center;line-height:44px}
-.item{position:absolute;top:50%;left:0;width:100%;transform:translateY(-50%);color:var(--hint);transition:opacity .2s,transform .2s}
-.item.active{color:var(--text);transform:translateY(-50%) scale(1.15);opacity:1}
+body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.picker-container{position:relative;width:100%;max-width:400px;height:240px;overflow:hidden}
+.picker{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;padding:90px 0;box-sizing:border-box}
+.item{scroll-snap-align:center;height:60px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:var(--hint);transition:color .3s}
+.item.active{color:var(--text);font-size:28px}
+.highlight{position:absolute;top:50%;left:0;right:0;height:60px;border-top:1px solid #333;border-bottom:1px solid #333;pointer-events:none;transform:translateY(-50%)}
 </style>
 </head>
 <body>
-<div class="header">Выберите пункт</div>
-<div class="picker-wrapper">
-<div class="gradient-top"></div>
-<div class="gradient-bottom"></div>
-<div class="highlight"></div>
-<div class="picker">
-<div class="wheel" id="wheel"></div>
-</div>
+<div class="picker-container">
+  <div class="picker" id="wheel">
+    <div class="item" data-value="1">Заголовок 1</div>
+    <div class="item" data-value="2">Заголовок 2</div>
+    <div class="item" data-value="3">Заголовок 3</div>
+    <div class="item" data-value="4">Заголовок 4</div>
+    <div class="item" data-value="5">Заголовок 5</div>
+    <div class="item" data-value="6">Заголовок 6</div>
+  </div>
+  <div class="highlight"></div>
 </div>
 <script>
 const tg=window.Telegram.WebApp;tg.ready();
-const items=[{title:"Заголовок 1"},{title:"Заголовок 2"},{title:"Заголовок 3"},{title:"Заголовок 4"},{title:"Заголовок 5"},{title:"Заголовок 6"}];
 const wheel=document.getElementById('wheel');
-const itemHeight=44;
-let currentIndex=0,startY=0,currentY=0,translate=0,velocity=0,isDragging=false,animationFrame=null;
-const extendedItems=[...items.slice(-2),...items,...items.slice(0,2)];
-function render(){
-const totalOffset=(currentIndex*itemHeight)+translate;
-wheel.innerHTML=extendedItems.map((item,i)=>{
-const basePos=(i-2)*itemHeight;
-const pos=basePos-totalOffset;
-const distance=Math.abs(pos);
-const opacity=Math.max(0.2,1-distance/(itemHeight*2.5));
-const isActive=distance<itemHeight/2;
-return`<div class="item ${isActive?'active':''}" style="transform:translateY(${pos}px);opacity:${opacity}">${item.title}</div>`;
-}).join('');
-const realIndex=((currentIndex%items.length)+items.length)%items.length;
-tg.MainButton.setText(`Выбрано: ${items[realIndex].title}`).show();
+const items=wheel.querySelectorAll('.item');
+const itemHeight=60;
+let isScrolling=false;
+
+function updateActive(){
+  const scrollTop=wheel.scrollTop;
+  const center=scrollTop+wheel.clientHeight/2;
+  let closest=null, minDist=Infinity;
+  items.forEach(item=>{
+    const rect=item.getBoundingClientRect();
+    const itemCenter=rect.top+rect.height/2;
+    const dist=Math.abs(itemCenter-wheel.clientHeight/2);
+    item.classList.toggle('active',dist<30);
+    if(dist<minDist){minDist=dist;closest=item}
+  });
+  if(!isScrolling&&closest){
+    const targetIndex=[...items].indexOf(closest);
+    wheel.scrollTo({top:targetIndex*itemHeight-wheel.clientHeight/2+itemHeight/2,behavior:'smooth'});
+    tg.HapticFeedback.selectionChanged();
+  }
 }
-wheel.addEventListener('pointerdown',e=>{isDragging=true;startY=e.pageY;currentY=e.pageY;velocity=0;if(animationFrame)cancelAnimationFrame(animationFrame);wheel.style.transition='none';e.preventDefault()});
-wheel.addEventListener('pointermove',e=>{if(!isDragging)return;const delta=currentY-e.pageY;velocity=delta;currentY=e.pageY;translate+=delta;render()});
-wheel.addEventListener('pointerup',()=>{if(!isDragging)return;isDragging=false;wheel.style.transition='transform .3s cubic-bezier(0.25,0.46,0.45,0.94)';if(Math.abs(velocity)>2){const inertia=velocity*8;translate+=inertia}snap()});
-wheel.addEventListener('pointercancel',()=>wheel.dispatchEvent(new Event('pointerup')));
-function snap(){
-const totalMove=translate;
-const steps=Math.round(totalMove/itemHeight);
-currentIndex+=steps;
-translate=0;
-if(currentIndex>=items.length){currentIndex=currentIndex%items.length}else if(currentIndex<0){currentIndex=((currentIndex%items.length)+items.length)%items.length}
-render();
-if(steps!==0){tg.HapticFeedback.selectionChanged()}
-}
-render();
+
+wheel.addEventListener('scroll',()=>{
+  isScrolling=true;
+  clearTimeout(wheel.scrollEndTimer);
+  wheel.scrollEndTimer=setTimeout(()=>{isScrolling=false;updateActive()},150);
+});
+
+wheel.addEventListener('touchstart',()=>{isScrolling=true});
+wheel.addEventListener('touchend',()=>{setTimeout(()=>{isScrolling=false;updateActive()},100)});
+
+updateActive();
 </script>
 </body>
 </html>
