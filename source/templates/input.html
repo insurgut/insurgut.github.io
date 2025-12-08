@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>input</title>
+<style>
+:root{--bg:#000;--text:#fff;--text-sec:#777;--primary:#0a84ff}
+body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;display:flex;align-items:center;justify-content:center}
+.field{position:relative;width:340px}
+.input{width:100%;padding:18px 0 6px;border:none;border-bottom:1.6px solid #333;background:transparent;font-size:17px;color:var(--text);caret-color:var(--primary)}
+.input:focus{outline:none;border-color:var(--primary)}
+.label{position:absolute;left:0;top:18px;font-size:17px;color:var(--text-sec);pointer-events:none;transition:all .3s cubic-bezier(.4,0,.2,1);transform-origin:0 50%;white-space:nowrap}
+.input:focus+.label,.input:not(:placeholder-shown)+.label{top:0;font-size:11px;font-weight:600;color:var(--primary);background:var(--bg);padding:0 5px;margin-left:-5px;transform:translateY(-50%)}
+.underline{position:absolute;bottom:0;left:0;height:2px;width:0;background:var(--primary);transition:width .4s cubic-bezier(.25,.8,.25,1)}
+.input:focus~.underline{width:100%}
+</style>
+</head>
+<body>
+<div class="field">
+<input type="text" class="input" placeholder=" ">
+<div class="label">Введите текст</div>
+<div class="underline"></div>
+</div>
+</body>
+</html>
