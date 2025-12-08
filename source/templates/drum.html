@@ -6,17 +6,21 @@
 <title>Барабанный селектор</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--bg:var(--tg-theme-bg-color,#000);--text:var(--tg-theme-text-color,#fff);--hint:var(--tg-theme-hint-color,#888);--primary:var(--tg-theme-button-color,#0a84ff)}
+:root{--bg:var(--tg-theme-bg-color,#000);--text:var(--tg-theme-text-color,#fff);--hint:var(--tg-theme-hint-color,#666);--primary:var(--tg-theme-button-color,#0a84ff)}
 body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.picker-container{position:relative;width:100%;max-width:400px;height:240px;overflow:hidden}
-.picker{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;padding:90px 0;box-sizing:border-box}
-.item{scroll-snap-align:center;height:60px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:var(--hint);transition:color .3s}
-.item.active{color:var(--text);font-size:28px}
-.highlight{position:absolute;top:50%;left:0;right:0;height:60px;border-top:1px solid #333;border-bottom:1px solid #333;pointer-events:none;transform:translateY(-50%)}
+.picker-wrapper{position:relative;width:100%;max-widt
+```h:400px;height:240px;overflow:hidden;background:var(--bg)}
+.picker-wrapper::before,.picker-wrapper::after{content:'';position:absolute;left:0;right:0;height:70px;pointer-events:none;z-index:2}
+.picker-wrapper::before{top:0;background:linear-gradient(var(--bg),transparent)}
+.picker-wrapper::after{bottom:0;background:linear-gradient(transparent,var(--bg))}
+.picker{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;padding:90px 0;box-sizing:border-box;scroll-behavior:smooth}
+.item{scroll-snap-align:center;height:60px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:500;color:var(--hint);transition:all .3s}
+.item.active{color:var(--text);font-size:28px;font-weight:600}
+.highlight{position:absolute;top:50%;left:20px;right:20px;height:60px;border-top:1px solid #333;border-bottom:1px solid #333;pointer-events:none;transform:translateY(-50%);z-index:1}
 </style>
 </head>
 <body>
-<div class="picker-container">
+<div class="picker-wrapper">
   <div class="picker" id="wheel">
     <div class="item" data-value="1">Заголовок 1</div>
     <div class="item" data-value="2">Заголовок 2</div>
@@ -30,38 +34,35 @@ body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-a
 <script>
 const tg=window.Telegram.WebApp;tg.ready();
 const wheel=document.getElementById('wheel');
-const items=wheel.querySelectorAll('.item');
+const items=[...wheel.querySelectorAll('.item')];
 const itemHeight=60;
-let isScrolling=false;
+let isUserScrolling=false;
 
-function updateActive(){
-  const scrollTop=wheel.scrollTop;
-  const center=scrollTop+wheel.clientHeight/2;
-  let closest=null, minDist=Infinity;
+function snapToNearest(){
+  if(isUserScrolling) return;
+  const scrollCenter=wheel.scrollTop + wheel.clientHeight/2;
+  let closest=null, minDiff=Infinity;
   items.forEach(item=>{
-    const rect=item.getBoundingClientRect();
-    const itemCenter=rect.top+rect.height/2;
-    const dist=Math.abs(itemCenter-wheel.clientHeight/2);
-    item.classList.toggle('active',dist<30);
-    if(dist<minDist){minDist=dist;closest=item}
+    const itemTop=item.offsetTop;
+    const itemCenter=itemTop + itemHeight/2;
+    const diff=Math.abs(scrollCenter-itemCenter);
+    if(diff<minDiff){minDiff=diff;closest=item}
   });
-  if(!isScrolling&&closest){
-    const targetIndex=[...items].indexOf(closest);
-    wheel.scrollTo({top:targetIndex*itemHeight-wheel.clientHeight/2+itemHeight/2,behavior:'smooth'});
+  if(closest){
+    const targetScroll=closest.offsetTop - wheel.clientHeight/2 + itemHeight/2;
+    wheel.scrollTo({top:targetScroll,behavior:'smooth'});
     tg.HapticFeedback.selectionChanged();
   }
 }
 
 wheel.addEventListener('scroll',()=>{
-  isScrolling=true;
-  clearTimeout(wheel.scrollEndTimer);
-  wheel.scrollEndTimer=setTimeout(()=>{isScrolling=false;updateActive()},150);
+  isUserScrolling=true;
+  clearTimeout(wheel.scrollTimer);
+  wheel.scrollTimer=setTimeout(()=>{
+    isUserScrolling=false;
+    snapToNearest();
+  },120);
 });
 
-wheel.addEventListener('touchstart',()=>{isScrolling=true});
-wheel.addEventListener('touchend',()=>{setTimeout(()=>{isScrolling=false;updateActive()},100)});
-
-updateActive();
-</script>
-</body>
-</html>
+wheel.addEventListener('touchstart',()=>{isUserScrolling=true});
+wheel.addEventListener('touchend',()=>{setTimeout(()=>{isUserScrolling=false;snapToNearest()},80)});
