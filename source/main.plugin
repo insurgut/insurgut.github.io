@@ -13,46 +13,51 @@ from android_utils import run_on_ui_thread, log
 from android.webkit import WebView, WebViewClient
 from android.widget import FrameLayout
 from android.view import ViewGroup
-from java.lang import Runnable
-from java import jclass, dynamic_proxy
 from android.os import Bundle
+from java import dynamic_proxy
 
 try:
-    XposedBridge = jclass("de.robv.android.xposed.XposedBridge")
-    SettingsActivity = jclass("org.telegram.ui.SettingsActivity")
+    from de.robv.android.xposed import XposedBridge  # AliuHook provides this
     JAVA_CLASSES_FOUND = True
-except Exception as e:
-    log(f"[HTML Overlay] FATAL: Failed to import core Java classes: {e}")
-    JAVA_CLASSES_FOUND = False
+except ImportError:
+    try:
+        from java import jclass
+        XposedBridge = jclass("de.robv.android.xposed.XposedBridge")
+        JAVA_CLASSES_FOUND = True
+    except Exception:
+        log(f"[HTML Overlay] FATAL: Failed to import XposedBridge")
+        JAVA_CLASSES_FOUND = False
 
 class HTMLOverlayHook(MethodHook):
     def __init__(self, plugin):
         super().__init__()
         self.plugin = plugin
 
-    def beforeHookedMethod(self, param):
+    def afterHookedMethod(self, param):
         try:
             run_on_ui_thread(lambda: self.plugin._add_overlay(param.thisObject))
         except Exception as e:
-            log(f"[HTML Overlay] Error in beforeHookedMethod: {traceback.format_exc()}")
+            log(f"[HTML Overlay] Error in afterHookedMethod (onResume): {traceback.format_exc()}")
 
 class HTMLDestroyHook(MethodHook):
     def __init__(self, plugin):
         super().__init__()
         self.plugin = plugin
 
-    def afterHookedMethod(self, param):
+    def beforeHookedMethod(self, param):
         try:
             run_on_ui_thread(lambda: self.plugin._remove_overlay())
         except Exception as e:
-            log(f"[HTML Overlay] Error in afterHookedMethod: {traceback.format_exc()}")
+            log(f"[HTML Overlay] Error in beforeHookedMethod (onPause): {traceback.format_exc()}")
 
 class HTMLOverlayPlugin(BasePlugin):
     def __init__(self):
         self.overlay = None
         self.webview = None
+        self.settings_class = None
 
-    def _add_overlay(self, activity):
+    def _add_overlay(self, fragment):
+        activity = fragment.getParentActivity()
         if not activity or self.overlay:
             return
 
@@ -107,19 +112,23 @@ class HTMLOverlayPlugin(BasePlugin):
 
     def on_plugin_load(self):
         if not JAVA_CLASSES_FOUND:
-            self.log("[HTML Overlay] Cannot load: Java classes not found.")
+            self.log("[HTML Overlay] Cannot load: XposedBridge not found.")
             return
 
         try:
-            # Hook onCreate to add overlay
-            on_create_method = SettingsActivity.getDeclaredMethod("onCreate", Bundle)
-            create_hook = HTMLOverlayHook(self)
-            XposedBridge.hookMethod(on_create_method, create_hook)
+            self.settings_class = find_class("org.telegram.ui.SettingsActivity")
+            if not self.settings_class:
+                raise Exception("Could not find SettingsActivity class")
 
-            # Hook onDestroy to remove overlay
-            on_destroy_method = SettingsActivity.getDeclaredMethod("onDestroy")
-            destroy_hook = HTMLDestroyHook(self)
-            XposedBridge.hookMethod(on_destroy_method, destroy_hook)
+            # Hook onResume to add overlay
+            on_resume_method = self.settings_class.getDeclaredMethod("onResume")
+            resume_hook = HTMLOverlayHook(self)
+            XposedBridge.hookMethod(on_resume_method, resume_hook)
+
+            # Hook onPause to remove overlay
+            on_pause_method = self.settings_class.getDeclaredMethod("onPause")
+            pause_hook = HTMLDestroyHook(self)
+            XposedBridge.hookMethod(on_pause_method, pause_hook)
 
             self.log("[HTML Overlay] Hooks installed successfully.")
         except Exception as e:
