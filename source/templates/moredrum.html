@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>Двойной барабанный селектор</title>
+<title>Двойной барабан без ползунков</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--bg:var(--tg-theme-bg-color,#000);--text:var(--tg-theme-text-color,#fff);--hint:var(--tg-theme-hint-color,#666);--primary:var(--tg-theme-button-color,#0a84ff)}
@@ -13,7 +13,8 @@ body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-a
 .picker-wrapper::before{top:0;background:linear-gradient(var(--bg) 30%,transparent)}
 .picker-wrapper::after{bottom:0;background:linear-gradient(transparent,var(--bg) 70%)}
 .picker{display:flex;height:100%;overflow:hidden}
-.column{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:90px 0;box-sizing:border-box;scroll-snap-type:y mandatory}
+.column{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:90px 0;box-sizing:border-box;scroll-snap-type:y mandatory;-ms-overflow-style:none;scrollbar-width:none}
+.column::-webkit-scrollbar{display:none}
 .item{scroll-snap-align:center;height:60px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:500;color:var(--hint);transition:all .4s cubic-bezier(.22,1,.36,1)}
 .item.active{color:var(--primary);font-size:26px;font-weight:700}
 .highlight{position:absolute;top:50%;left:10px;right:10px;height:60px;border-top:2px solid transparent;border-bottom:2px solid transparent;pointer-events:none;transform:translateY(-50%);z-index:5;transition:border-color .35s}
@@ -23,29 +24,13 @@ body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-a
 <body>
 <div class="picker-wrapper">
   <div class="picker">
-    <div class="column" id="col1">
-      <div class="item">01</div>
-      <div class="item">02</div>
-      <div class="item">03</div>
-      <div class="item">04</div>
-      <div class="item">05</div>
-      <div class="item">06</div>
-      <div class="item">07</div>
-      <div class="item">08</div>
-      <div class="item">09</div>
-      <div class="item">10</div>
+    <div class="column">
+      <div class="item">01</div><div class="item">02</div><div class="item">03</div><div class="item">04</div><div class="item">05</div>
+      <div class="item">06</div><div class="item">07</div><div class="item">08</div><div class="item">09</div><div class="item">10</div>
     </div>
-    <div class="column" id="col2">
-      <div class="item">11</div>
-      <div class="item">12</div>
-      <div class="item">13</div>
-      <div class="item">14</div>
-      <div class="item">15</div>
-      <div class="item">16</div>
-      <div class="item">17</div>
-      <div class="item">18</div>
-      <div class="item">19</div>
-      <div class="item">20</div>
+    <div class="column">
+      <div class="item">11</div><div class="item">12</div><div class="item">13</div><div class="item">14</div><div class="item">15</div>
+      <div class="item">16</div><div class="item">17</div><div class="item">18</div><div class="item">19</div><div class="item">20</div>
     </div>
   </div>
   <div class="highlight" id="hl"></div>
@@ -58,26 +43,40 @@ const H=60;
 let ticking=false;
 
 function update(){
-  let anyActive=false;
+  let any=false;
   columns.forEach(col=>{
-    const center=col.scrollTop+col.clientHeight/2;
+    const c=col.scrollTop+col.clientHeight/2;
     col.querySelectorAll('.item').forEach(it=>{
-      const pos=it.offsetTop+H/2;
-      const active=Math.abs(center-pos)<35;
+      const active=Math.abs(c-(it.offsetTop+H/2))<35;
       it.classList.toggle('active',active);
-      if(active)anyActive=true;
+      if(active)any=true;
     });
   });
-  hl.classList.toggle('active',anyActive);
+  hl.classList.toggle('active',any);
   ticking=false;
 }
 
 function snap(col){
-  const center=col.scrollTop+col.clientHeight/2;
-  let closest=col.children[0],min=Infinity;
+  const c=col.scrollTop+col.clientHeight/2;
+  let best=col.children[0],min=Infinity;
   [...col.children].forEach(it=>{
-    const diff=Math.abs(center-(it.offsetTop+H/2));
-    if(diff<min){min=diff;closest=it}
+    const d=Math.abs(c-(it.offsetTop+H/2));
+    if(d<min){min=d;best=it}
   });
-  col.scrollTo({top:closest.offsetTop-col.clientHeight/2+H/2,behavior:'smooth'});
- 
+  col.scrollTo({top:best.offsetTop-col.clientHeight/2+H/2,behavior:'smooth'});
+  tg.HapticFeedback.selectionChanged();
+}
+
+columns.forEach(col=>{
+  col.addEventListener('scroll',()=>{
+    if(!ticking)requestAnimationFrame(update);
+    ticking=true;
+    clearTimeout(col.t);
+    col.t=setTimeout(()=>snap(col),100);
+  },{passive:true});
+});
+
+setTimeout(()=>{columns.forEach(c=>c.scrollTop=H*2);update()},50);
+</script>
+</body>
+</html>
