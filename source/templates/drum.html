@@ -8,15 +8,15 @@
 <style>
 :root{--bg:var(--tg-theme-bg-color,#000);--text:var(--tg-theme-text-color,#fff);--hint:var(--tg-theme-hint-color,#666);--primary:var(--tg-theme-button-color,#0a84ff)}
 body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.picker-wrapper{position:relative;width:100%;max-widt
-```h:400px;height:240px;overflow:hidden;background:var(--bg)}
+.picker-wrapper{position:relative;width:100%;max-width:400px;height:240px;overflow:hidden;background:var(--bg)}
 .picker-wrapper::before,.picker-wrapper::after{content:'';position:absolute;left:0;right:0;height:70px;pointer-events:none;z-index:2}
 .picker-wrapper::before{top:0;background:linear-gradient(var(--bg),transparent)}
 .picker-wrapper::after{bottom:0;background:linear-gradient(transparent,var(--bg))}
-.picker{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;padding:90px 0;box-sizing:border-box;scroll-behavior:smooth}
-.item{scroll-snap-align:center;height:60px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:500;color:var(--hint);transition:all .3s}
-.item.active{color:var(--text);font-size:28px;font-weight:600}
-.highlight{position:absolute;top:50%;left:20px;right:20px;height:60px;border-top:1px solid #333;border-bottom:1px solid #333;pointer-events:none;transform:translateY(-50%);z-index:1}
+.picker{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;padding:90px 0;box-sizing:border-box}
+.item{scroll-snap-align:center;height:60px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:500;color:var(--hint);transition:all .35s cubic-bezier(.2,.8,.4,1)}
+.item.active{color:var(--primary);font-size:30px;font-weight:700}
+.highlight{position:absolute;top:50%;left:20px;right:20px;height:60px;border-top:2px solid transparent;border-bottom:2px solid transparent;pointer-events:none;transform:translateY(-50%);z-index:3;transition:border-color .3s}
+.highlight.active{border-color:var(--primary)}
 </style>
 </head>
 <body>
@@ -29,40 +29,56 @@ body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-a
     <div class="item" data-value="5">Заголовок 5</div>
     <div class="item" data-value="6">Заголовок 6</div>
   </div>
-  <div class="highlight"></div>
+  <div class="highlight" id="highlight"></div>
 </div>
 <script>
 const tg=window.Telegram.WebApp;tg.ready();
 const wheel=document.getElementById('wheel');
+const highlight=document.getElementById('highlight');
 const items=[...wheel.querySelectorAll('.item')];
 const itemHeight=60;
 let isUserScrolling=false;
 
-function snapToNearest(){
-  if(isUserScrolling) return;
-  const scrollCenter=wheel.scrollTop + wheel.clientHeight/2;
+function update(){
+  const center=wheel.scrollTop + wheel.clientHeight/2;
   let closest=null, minDiff=Infinity;
   items.forEach(item=>{
-    const itemTop=item.offsetTop;
-    const itemCenter=itemTop + itemHeight/2;
-    const diff=Math.abs(scrollCenter-itemCenter);
+    const itemCenter=item.offsetTop + itemHeight/2;
+    const diff=Math.abs(center-itemCenter);
+    const isActive=diff<40;
+    item.classList.toggle('active',isActive);
+    if(diff<minDiff){minDiff=diff;closest=item}
+  });
+  highlight.classList.toggle('active',!!closest && closest.classList.contains('active'));
+}
+
+function snap(){
+  if(isUserScrolling) return;
+  const center=wheel.scrollTop + wheel.clientHeight/2;
+  let closest=null, minDiff=Infinity;
+  items.forEach(item=>{
+    const itemCenter=item.offsetTop + itemHeight/2;
+    const diff=Math.abs(center-itemCenter);
     if(diff<minDiff){minDiff=diff;closest=item}
   });
   if(closest){
-    const targetScroll=closest.offsetTop - wheel.clientHeight/2 + itemHeight/2;
-    wheel.scrollTo({top:targetScroll,behavior:'smooth'});
+    wheel.scrollTo({top:closest.offsetTop - wheel.clientHeight/2 + itemHeight/2,behavior:'smooth'});
     tg.HapticFeedback.selectionChanged();
   }
 }
 
 wheel.addEventListener('scroll',()=>{
   isUserScrolling=true;
-  clearTimeout(wheel.scrollTimer);
-  wheel.scrollTimer=setTimeout(()=>{
-    isUserScrolling=false;
-    snapToNearest();
-  },120);
+  clearTimeout(wheel.timer);
+  wheel.timer=setTimeout(()=>{isUserScrolling=false;snap()},120);
+  update();
 });
 
 wheel.addEventListener('touchstart',()=>{isUserScrolling=true});
-wheel.addEventListener('touchend',()=>{setTimeout(()=>{isUserScrolling=false;snapToNearest()},80)});
+wheel.addEventListener('touchend',()=>{setTimeout(()=>{isUserScrolling=false;snap();update()},80)});
+
+update();
+setTimeout(()=>{wheel.scrollTop=itemHeight*1.5;snap();update()},100);
+</script>
+</body>
+</html>
