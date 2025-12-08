@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Двойной барабанный селектор</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:var(--tg-theme-bg-color,#000);--text:var(--tg-theme-text-color,#fff);--hint:var(--tg-theme-hint-color,#666);--primary:var(--tg-theme-button-color,#0a84ff)}
+body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.picker-wrapper{position:relative;width:100%;max-width:420px;height:240px;overflow:hidden;background:var(--bg)}
+.picker-wrapper::before,.picker-wrapper::after{content:'';position:absolute;left:0;right:0;height:80px;pointer-events:none;z-index:10}
+.picker-wrapper::before{top:0;background:linear-gradient(var(--bg) 30%,transparent)}
+.picker-wrapper::after{bottom:0;background:linear-gradient(transparent,var(--bg) 70%)}
+.picker{display:flex;height:100%;overflow:hidden}
+.column{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:90px 0;box-sizing:border-box;scroll-snap-type:y mandatory}
+.item{scroll-snap-align:center;height:60px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:500;color:var(--hint);transition:all .4s cubic-bezier(.22,1,.36,1)}
+.item.active{color:var(--primary);font-size:26px;font-weight:700}
+.highlight{position:absolute;top:50%;left:10px;right:10px;height:60px;border-top:2px solid transparent;border-bottom:2px solid transparent;pointer-events:none;transform:translateY(-50%);z-index:5;transition:border-color .35s}
+.highlight.active{border-color:var(--primary)}
+</style>
+</head>
+<body>
+<div class="picker-wrapper">
+  <div class="picker">
+    <div class="column" id="col1">
+      <div class="item">01</div>
+      <div class="item">02</div>
+      <div class="item">03</div>
+      <div class="item">04</div>
+      <div class="item">05</div>
+      <div class="item">06</div>
+      <div class="item">07</div>
+      <div class="item">08</div>
+      <div class="item">09</div>
+      <div class="item">10</div>
+    </div>
+    <div class="column" id="col2">
+      <div class="item">11</div>
+      <div class="item">12</div>
+      <div class="item">13</div>
+      <div class="item">14</div>
+      <div class="item">15</div>
+      <div class="item">16</div>
+      <div class="item">17</div>
+      <div class="item">18</div>
+      <div class="item">19</div>
+      <div class="item">20</div>
+    </div>
+  </div>
+  <div class="highlight" id="hl"></div>
+</div>
+<script>
+const tg=window.Telegram.WebApp;tg.ready();
+const columns=document.querySelectorAll('.column');
+const hl=document.getElementById('hl');
+const H=60;
+let ticking=false;
+
+function update(){
+  let anyActive=false;
+  columns.forEach(col=>{
+    const center=col.scrollTop+col.clientHeight/2;
+    col.querySelectorAll('.item').forEach(it=>{
+      const pos=it.offsetTop+H/2;
+      const active=Math.abs(center-pos)<35;
+      it.classList.toggle('active',active);
+      if(active)anyActive=true;
+    });
+  });
+  hl.classList.toggle('active',anyActive);
+  ticking=false;
+}
+
+function snap(col){
+  const center=col.scrollTop+col.clientHeight/2;
+  let closest=col.children[0],min=Infinity;
+  [...col.children].forEach(it=>{
+    const diff=Math.abs(center-(it.offsetTop+H/2));
+    if(diff<min){min=diff;closest=it}
+  });
+  col.scrollTo({top:closest.offsetTop-col.clientHeight/2+H/2,behavior:'smooth'});
+ 
