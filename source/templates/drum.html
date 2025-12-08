@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>drum</title>
+<title>iOS Цикличный барабан</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--bg:var(--tg-theme-bg-color,#000);--text:var(--tg-theme-text-color,#fff);--hint:var(--tg-theme-hint-color,#888);--primary:var(--tg-theme-button-color,#0a84ff)}
@@ -23,60 +23,45 @@ body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-a
 <body>
 <div class="header">Выберите пункт</div>
 <div class="picker-wrapper">
-  <div class="gradient-top"></div>
-  <div class="gradient-bottom"></div>
-  <div class="highlight"></div>
-  <div class="picker">
-    <div class="wheel" id="wheel"></div>
-  </div>
+<div class="gradient-top"></div>
+<div class="gradient-bottom"></div>
+<div class="highlight"></div>
+<div class="picker">
+<div class="wheel" id="wheel"></div>
+</div>
 </div>
 <script>
 const tg=window.Telegram.WebApp;tg.ready();
-const items=[
-{title:"Заголовок 1"},
-{title:"Заголовок 2"},
-{title:"Заголовок 3"},
-{title:"Заголовок 4"},
-{title:"Заголовок 5"},
-{title:"Заголовок 6"}
-];
+const items=[{title:"Заголовок 1"},{title:"Заголовок 2"},{title:"Заголовок 3"},{title:"Заголовок 4"},{title:"Заголовок 5"},{title:"Заголовок 6"}];
 const wheel=document.getElementById('wheel');
 const itemHeight=44;
-let currentIndex=0;
-let startY=0;
-let translate=0;
-let isDragging=false;
-
-// Дублируем массив для бесконечной прокрутки
+let currentIndex=0,startY=0,currentY=0,translate=0,velocity=0,isDragging=false,animationFrame=null;
 const extendedItems=[...items.slice(-2),...items,...items.slice(0,2)];
-
 function render(){
-  const offset=translate%itemHeight;
-  wheel.innerHTML=extendedItems.map((item,i)=>{
-    const pos=(i-Math.floor(extendedItems.length/2))*itemHeight+offset;
-    const distance=Math.abs(pos);
-    const opacity=Math.max(0,1-distance/(itemHeight*3));
-    const isActive=distance<10;
-    return`<div class="item ${isActive?'active':''}" style="transform:translateY(${pos}px);opacity:${opacity}">${item.title}</div>`;
-  }).join('');
-  const realIndex=(currentIndex+items.length)%items.length;
-  tg.MainButton.setText(`Выбрано: ${items[realIndex].title}`).show();
+const totalOffset=(currentIndex*itemHeight)+translate;
+wheel.innerHTML=extendedItems.map((item,i)=>{
+const basePos=(i-2)*itemHeight;
+const pos=basePos-totalOffset;
+const distance=Math.abs(pos);
+const opacity=Math.max(0.2,1-distance/(itemHeight*2.5));
+const isActive=distance<itemHeight/2;
+return`<div class="item ${isActive?'active':''}" style="transform:translateY(${pos}px);opacity:${opacity}">${item.title}</div>`;
+}).join('');
+const realIndex=((currentIndex%items.length)+items.length)%items.length;
+tg.MainButton.setText(`Выбрано: ${items[realIndex].title}`).show();
 }
-wheel.addEventListener('pointerdown',e=>{isDragging=true;startY=e.pageY;wheel.style.transition='none';e.preventDefault()});
-wheel.addEventListener('pointermove',e=>{
-  if(!isDragging)return;
-  translate=startY-e.pageY;
-  render();
-});
-wheel.addEventListener('pointerup',()=>{if(!isDragging)return;isDragging=false;wheel.style.transition='transform .5s cubic-bezier(0.2,0.8,0.2,1)';snap()});
+wheel.addEventListener('pointerdown',e=>{isDragging=true;startY=e.pageY;currentY=e.pageY;velocity=0;if(animationFrame)cancelAnimationFrame(animationFrame);wheel.style.transition='none';e.preventDefault()});
+wheel.addEventListener('pointermove',e=>{if(!isDragging)return;const delta=currentY-e.pageY;velocity=delta;currentY=e.pageY;translate+=delta;render()});
+wheel.addEventListener('pointerup',()=>{if(!isDragging)return;isDragging=false;wheel.style.transition='transform .3s cubic-bezier(0.25,0.46,0.45,0.94)';if(Math.abs(velocity)>2){const inertia=velocity*8;translate+=inertia}snap()});
 wheel.addEventListener('pointercancel',()=>wheel.dispatchEvent(new Event('pointerup')));
-
 function snap(){
-  const step=translate/itemHeight;
-  currentIndex=Math.round(currentIndex-step);
-  translate=0;
-  render();
-  tg.HapticFeedback.selectionChanged();
+const totalMove=translate;
+const steps=Math.round(totalMove/itemHeight);
+currentIndex+=steps;
+translate=0;
+if(currentIndex>=items.length){currentIndex=currentIndex%items.length}else if(currentIndex<0){currentIndex=((currentIndex%items.length)+items.length)%items.length}
+render();
+if(steps!==0){tg.HapticFeedback.selectionChanged()}
 }
 render();
 </script>
