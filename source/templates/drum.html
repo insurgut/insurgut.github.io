@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>drum</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:var(--tg-theme-bg-color,#000);--text:var(--tg-theme-text-color,#fff);--hint:var(--tg-theme-hint-color,#888);--primary:var(--tg-theme-button-color,#0a84ff)}
+body{margin:0;height:100vh;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;display:flex;flex-direction:column;overflow:hidden}
+.header{padding:20px 20px 10px;text-align:center;font-size:20px;font-weight:600}
+.picker-wrapper{flex:1;position:relative;overflow:hidden}
+.picker{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.gradient-top,.gradient-bottom{position:absolute;left:0;width:100%;height:80px;pointer-events:none;z-index:10}
+.gradient-top{top:0;background:linear-gradient(var(--bg),transparent)}
+.gradient-bottom{bottom:0;background:linear-gradient(transparent,var(--bg))}
+.highlight{position:absolute;left:0;right:0;top:50%;height:44px;border-top:1px solid #333;border-bottom:1px solid #333;transform:translateY(-50%);pointer-events:none;z-index:5}
+.wheel{position:relative;height:44px;font-size:28px;font-weight:600;text-align:center;line-height:44px}
+.item{position:absolute;top:50%;left:0;width:100%;transform:translateY(-50%);color:var(--hint);transition:opacity .2s,transform .2s}
+.item.active{color:var(--text);transform:translateY(-50%) scale(1.15);opacity:1}
+</style>
+</head>
+<body>
+<div class="header">Выберите пункт</div>
+<div class="picker-wrapper">
+  <div class="gradient-top"></div>
+  <div class="gradient-bottom"></div>
+  <div class="highlight"></div>
+  <div class="picker">
+    <div class="wheel" id="wheel"></div>
+  </div>
+</div>
+<script>
+const tg=window.Telegram.WebApp;tg.ready();
+const items=[
+{title:"Заголовок 1"},
+{title:"Заголовок 2"},
+{title:"Заголовок 3"},
+{title:"Заголовок 4"},
+{title:"Заголовок 5"},
+{title:"Заголовок 6"}
+];
+const wheel=document.getElementById('wheel');
+const itemHeight=44;
+let currentIndex=0;
+let startY=0;
+let translate=0;
+let isDragging=false;
+
+// Дублируем массив для бесконечной прокрутки
+const extendedItems=[...items.slice(-2),...items,...items.slice(0,2)];
+
+function render(){
+  const offset=translate%itemHeight;
+  wheel.innerHTML=extendedItems.map((item,i)=>{
+    const pos=(i-Math.floor(extendedItems.length/2))*itemHeight+offset;
+    const distance=Math.abs(pos);
+    const opacity=Math.max(0,1-distance/(itemHeight*3));
+    const isActive=distance<10;
+    return`<div class="item ${isActive?'active':''}" style="transform:translateY(${pos}px);opacity:${opacity}">${item.title}</div>`;
+  }).join('');
+  const realIndex=(currentIndex+items.length)%items.length;
+  tg.MainButton.setText(`Выбрано: ${items[realIndex].title}`).show();
+}
+wheel.addEventListener('pointerdown',e=>{isDragging=true;startY=e.pageY;wheel.style.transition='none';e.preventDefault()});
+wheel.addEventListener('pointermove',e=>{
+  if(!isDragging)return;
+  translate=startY-e.pageY;
+  render();
+});
+wheel.addEventListener('pointerup',()=>{if(!isDragging)return;isDragging=false;wheel.style.transition='transform .5s cubic-bezier(0.2,0.8,0.2,1)';snap()});
+wheel.addEventListener('pointercancel',()=>wheel.dispatchEvent(new Event('pointerup')));
+
+function snap(){
+  const step=translate/itemHeight;
+  currentIndex=Math.round(currentIndex-step);
+  translate=0;
+  render();
+  tg.HapticFeedback.selectionChanged();
+}
+render();
+</script>
+</body>
+</html>
