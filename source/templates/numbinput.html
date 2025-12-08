@@ -2,66 +2,293 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>number phone input</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Adaptive Phone Input</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-body{margin:0;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--tg-theme-bg-color,#000);color:var(--tg-theme-text-color,#fff);padding:1.5rem}
-*{-webkit-tap-highlight-color:transparent;outline:none;box-sizing:border-box}
-.phone-container{width:100%;max-width:320px}
-.phone-input-wrapper{position:relative;display:flex;align-items:center;gap:.5rem;padding:.75rem .875rem;border-radius:10px;background:transparent;border:1px solid var(--tg-theme-section-separator-color,#1a1a1a);transition:border-color .15s;margin-top:6px}
-.phone-input-wrapper::before{content:'';position:absolute;top:-1px;left:6px;width:80px;height:1px;background:var(--tg-theme-bg-color,#000);opacity:0;transition:opacity .15s}
-.phone-input-wrapper:focus-within{border-color:var(--tg-theme-button-color,#3390ec)}
-.phone-input-wrapper:focus-within::before{opacity:1}
-.floating-label{position:absolute;left:.875rem;top:50%;transform:translateY(-50%);font-size:.8125rem;font-weight:400;color:#fff;pointer-events:none;transition:all .15s;white-space:nowrap}
-.phone-input-wrapper:focus-within .floating-label,.has-value .floating-label{top:0px;left:6px;font-size:.625rem;font-weight:500;color:var(--tg-theme-button-color,#3390ec);padding:0 3px;background:var(--tg-theme-bg-color,#000)}
-.country-title{position:absolute;right:.875rem;top:50%;transform:translateY(-50%);font-size:.8125rem;font-weight:400;color:#fff;pointer-events:none;transition:all .15s;opacity:0.7}
-.phone-input-wrapper:focus-within .country-title,.has-value .country-title{top:-7px;transform:none;font-size:.625rem;font-weight:500;color:var(--tg-theme-button-color,#3390ec);padding:0 3px;background:var(--tg-theme-bg-color,#000);opacity:1}
-.input-content{display:flex;align-items:center;gap:.5rem;flex:1}
-.flag-container{display:flex;align-items:center;gap:.125rem;opacity:.85;transition:opacity .15s;flex-shrink:0}
-.flag-img{width:1rem;height:1rem;border-radius:2px}
-.flag-separator{font-size:.625rem;color:var(--tg-theme-hint-color,#666);opacity:.7;line-height:1}
-.phone-input-wrapper:focus-within .flag-container{opacity:1}
-.phone-input{flex:1;background:transparent;border:none;color:var(--tg-theme-text-color,#fff);font-size:.875rem;font-weight:400;font-family:inherit;min-width:0}
-.phone-input::placeholder{color:transparent}
+/* --- НАСТРОЙКИ И ПЕРЕМЕННЫЕ --- */
+:root {
+    --tg-bg: var(--tg-theme-bg-color, #000);
+    --tg-text: var(--tg-theme-text-color, #fff);
+    --tg-hint: var(--tg-theme-hint-color, #999);
+    --tg-accent: var(--tg-theme-button-color, #3390ec);
+    --tg-border: var(--tg-theme-section-separator-color, #2f2f2f);
+    
+    /* Размеры */
+    --input-height: 54px;
+    --border-radius: 12px;
+    --h-padding: 16px; /* Горизонтальный отступ внутри поля */
+}
+
+/* --- СБРОС И БАЗА --- */
+* {
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--tg-bg);
+    color: var(--tg-text);
+    /* Адаптивный отступ от краев экрана */
+    padding: clamp(1rem, 5vw, 2rem);
+    overflow-x: hidden;
+}
+
+/* --- КОНТЕЙНЕР --- */
+.phone-container {
+    width: 100%;
+    /* Максимальная ширина для планшетов/ПК, чтобы не растягивалось на 4k */
+    max-width: 500px; 
+    position: relative;
+}
+
+/* --- ОБЕРТКА ПОЛЯ (РАМКА) --- */
+.phone-input-wrapper {
+    position: relative;
+    width: 100%;
+    height: var(--input-height);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--h-padding);
+    border-radius: var(--border-radius);
+    background: transparent;
+    border: 1px solid var(--tg-border);
+    transition: all 0.2s ease;
+    margin-top: 8px; /* Место под всплывающий лейбл, если что */
+}
+
+/* Разрыв рамки под лейбл */
+.phone-input-wrapper::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 10px; /* Отступ разрыва слева */
+    width: 0;
+    height: 1px;
+    background: var(--tg-bg);
+    transition: width 0.2s ease, opacity 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* --- СОСТОЯНИЯ (ФОКУС / ЗАПОЛНЕНО) --- */
+/* Рамка становится синей при фокусе ИЛИ если есть значение (.has-value) */
+.phone-input-wrapper:focus-within,
+.phone-input-wrapper.has-value {
+    border-color: var(--tg-accent);
+    border-width: 1px; /* Можно поставить 2px для жирности, если хочется */
+}
+
+/* Активируем разрыв рамки */
+.phone-input-wrapper:focus-within::before,
+.phone-input-wrapper.has-value::before {
+    width: 85px; /* Ширина "дырки" под текст лейбла */
+    opacity: 1;
+}
+
+/* --- ЛЕЙБЛ (НАДПИСЬ) --- */
+.floating-label {
+    position: absolute;
+    left: var(--h-padding);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    color: var(--tg-hint);
+    pointer-events: none;
+    transition: all 0.2s ease;
+    background: transparent;
+    padding: 0;
+    z-index: 2;
+}
+
+/* Лейбл уезжает наверх */
+.phone-input-wrapper:focus-within .floating-label,
+.has-value .floating-label {
+    top: -1px;
+    left: 12px;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--tg-accent);
+    padding: 0 4px; /* Чтобы перекрыть рамку по бокам */
+    background: var(--tg-bg); /* Фон под текстом, чтобы скрыть линию */
+}
+
+/* --- НАЗВАНИЕ СТРАНЫ --- */
+.country-title {
+    position: absolute;
+    right: var(--h-padding);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85rem;
+    color: var(--tg-hint);
+    pointer-events: none;
+    transition: all 0.2s ease;
+    opacity: 0; /* Скрыто по умолчанию, пока не активно */
+    
+    /* Обрезка длинного текста */
+    max-width: 35%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+}
+
+/* Показываем название страны при фокусе/значении */
+.phone-input-wrapper:focus-within .country-title,
+.has-value .country-title {
+    top: -10px;
+    right: 12px;
+    transform: none;
+    font-size: 0.7rem;
+    color: var(--tg-accent);
+    background: var(--tg-bg);
+    padding: 0 4px;
+    opacity: 1;
+    z-index: 2;
+}
+
+/* --- КОНТЕНТ ВНУТРИ --- */
+.input-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* Флаги */
+.flag-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 10px;
+    opacity: 0;
+    transform: translateX(-5px);
+    transition: all 0.2s ease;
+    flex-shrink: 0; /* Чтобы флаг не сжимался */
+}
+
+/* Флаг показываем только при активности */
+.phone-input-wrapper:focus-within .flag-container,
+.has-value .flag-container {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.flag-img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%; /* Круглые флаги выглядят современнее, можно убрать для квадратных */
+    object-fit: cover;
+    display: block;
+}
+
+.flag-separator {
+    font-size: 14px;
+    color: var(--tg-hint);
+}
+
+/* Само поле ввода */
+.phone-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--tg-text);
+    font-size: 16px; /* ВАЖНО: 16px предотвращает зум на iPhone */
+    font-family: inherit;
+    font-weight: 400;
+    min-width: 0; /* Позволяет input сжиматься */
+    padding: 0;
+    margin: 0;
+    height: 100%;
+}
+
+.phone-input::placeholder {
+    color: transparent;
+}
+
+/* --- МЕДИА ЗАПРОСЫ (АДАПТИВНОСТЬ) --- */
+
+/* Для очень узких экранов (iPhone SE 1gen, Galaxy Fold сложенный) */
+@media (max-width: 340px) {
+    :root {
+        --h-padding: 10px;
+        --input-height: 48px;
+    }
+    .floating-label {
+        font-size: 0.9rem;
+    }
+    /* Скрываем название страны на микро-экранах, чтобы не мешало */
+    .country-title {
+        display: none; 
+    }
+}
 </style>
 </head>
 <body>
+
 <div class="phone-container">
   <div class="phone-input-wrapper" id="wrapper">
+    <!-- Лейбл -->
     <span class="floating-label">Номер телефона</span>
-    <span class="country-title" id="country-title">Загрузка...</span>
+    
+    <!-- Название страны (сверху справа) -->
+    <span class="country-title" id="country-title">Определение...</span>
+    
     <div class="input-content">
+      <!-- Флаг -->
       <div class="flag-container" id="flag">
         <img class="flag-img" src="https://flagsapi.com/RU/flat/64.png" alt="Flag">
       </div>
-      <input type="tel" class="phone-input" id="phone" placeholder=" " autocomplete="off" inputmode="tel" maxlength="20">
+      
+      <!-- Input -->
+      <input type="tel" class="phone-input" id="phone" placeholder=" " autocomplete="off" inputmode="tel" maxlength="25">
     </div>
   </div>
 </div>
+
 <script>
+/* Инициализация Telegram WebApp */
 if (window.Telegram?.WebApp) {
   Telegram.WebApp.ready();
-  Telegram.WebApp.expand();
-  Telegram.WebApp.setHeaderColor('bg_color');
+  Telegram.WebApp.expand(); // Растягиваем на весь экран
+  // Делаем цвет хедера таким же как фон
+  Telegram.WebApp.setHeaderColor(Telegram.WebApp.themeParams.bg_color || '#000000');
+  Telegram.WebApp.setBackgroundColor(Telegram.WebApp.themeParams.bg_color || '#000000');
 }
+
+/* Логика скрипта (почти без изменений, но с оптимизацией) */
 let countries = [];
 const wrapper = document.getElementById('wrapper');
 const phoneInput = document.getElementById('phone');
 const flagContainer = document.getElementById('flag');
 const countryTitle = document.getElementById('country-title');
 let currentCountry = null;
+
+// Флаг скрыт по умолчанию CSS-ом, но для логики инициализации:
 flagContainer.style.visibility = 'hidden';
+
+// Загрузка конфига стран
 fetch('https://insurgut.github.io/source/config/countriesn.json')
   .then(r => r.json())
   .then(data => {
     countries = data.map(c => ({...c, maxLen: (c.mask?.match(/x/g) || []).length}));
     const ru = countries.find(c => c.flag === 'ru');
     if (ru) ru.maxLen = 10;
-    countryTitle.textContent = 'Россия / Казахстан';
+    countryTitle.textContent = ''; // Сброс
     initDefault();
   })
-  .catch(() => countryTitle.textContent = 'Ошибка загрузки');
+  .catch(() => countryTitle.textContent = 'Ошибка');
+
 function formatNumber(number, mask) {
   let result = '';
   let digitIdx = 0;
@@ -74,6 +301,7 @@ function formatNumber(number, mask) {
   }
   return result;
 }
+
 function formatRussian(national) {
   if (national.length === 0) return '';
   let res = national.substring(0, Math.min(3, national.length));
@@ -94,6 +322,7 @@ function formatRussian(national) {
   }
   return res;
 }
+
 function detectCountry(num) {
   if (!num.startsWith('+') || !countries.length) return null;
   const digits = num.slice(1);
@@ -109,7 +338,10 @@ function detectCountry(num) {
   }
   return best;
 }
+
 function updateCountry(c) {
+  flagContainer.style.visibility = 'visible';
+  
   if (c?.flag === 'shared') {
     flagContainer.innerHTML = `<img class="flag-img" src="https://flagsapi.com/RU/flat/64.png">
        <span class="flag-separator">/</span>
@@ -120,56 +352,73 @@ function updateCountry(c) {
   }
   currentCountry = c;
   if (!c) {
-    flagContainer.innerHTML = '<img class="flag-img" src="https://flagsapi.com/UN/flat/64.png" alt="Globe">';
-    flagContainer.style.opacity = '0.5';
-    countryTitle.textContent = 'Неизвестная страна';
+    flagContainer.innerHTML = '<img class="flag-img" src="https://flagsapi.com/UN/flat/64.png" style="opacity:0.5">';
+    countryTitle.textContent = 'Неизвестно';
     return;
   }
   flagContainer.innerHTML = `<img class="flag-img" src="https://flagsapi.com/${c.flag.toUpperCase()}/flat/64.png">`;
-  flagContainer.style.opacity = '';
   countryTitle.textContent = c.name_ru || c.name;
 }
+
 function setCursorPos(pos) {
   setTimeout(() => {
     const newPos = Math.min(pos, phoneInput.value.length);
     phoneInput.setSelectionRange(newPos, newPos);
   });
 }
+
 function handleInput() {
   const currentValue = phoneInput.value;
   const currentPos = phoneInput.selectionStart;
+  
+  // Подсчет цифр до курсора для восстановления позиции
   let digitsBeforeCursor = 0;
   for (let i = 0; i < currentPos; i++) {
     if (/\d/.test(currentValue[i])) digitsBeforeCursor++;
   }
+
   let value = currentValue;
+  // Авто-плюс
   if (!value.startsWith('+')) {
     value = '+' + value.replace(/[^\d]/g, '');
     phoneInput.value = value;
   }
+
   const cleanValue = '+' + value.slice(1).replace(/[^\d]/g, '');
+  
   if (cleanValue === '+') {
     phoneInput.value = '+';
     updateCountry(null);
-    wrapper.classList.remove('has-value');
+    wrapper.classList.remove('has-value'); // Убираем акцент, если только плюс
     setCursorPos(1);
     return;
   }
+
+  // Если есть цифры кроме плюса - добавляем класс has-value
+  if (cleanValue.length > 1) {
+    wrapper.classList.add('has-value');
+  }
+
   const country = detectCountry(cleanValue);
   if (country) {
     const code = country.codes[0].toString();
     const codeLen = code.length;
     let national = cleanValue.slice(1 + codeLen);
-    national = national.substring(0, country.maxLen || 10);
+    
+    // Лимит длины
+    national = national.substring(0, country.maxLen || 15);
+
     let formattedNational = '';
     let isShared = false;
     let targetCountry = country;
+    
     const ru = countries.find(c => c.flag === 'ru');
     const kz = countries.find(c => c.flag === 'kz');
+
+    // Спец-логика для +7 (РФ/КЗ)
     if (code === '7' && ru && kz) {
       if (national.length === 0) {
         isShared = true;
-        formattedNational = '';
       } else {
         if (national[0] === '7') {
           targetCountry = kz;
@@ -182,9 +431,12 @@ function handleInput() {
     } else {
       formattedNational = formatNumber(national, country.mask || '');
     }
+
     const prefix = `+${code} `;
     const prefixLen = prefix.length;
     let newFormatted = prefix + formattedNational;
+
+    // Восстановление позиции курсора
     let nationalDigitsBefore = digitsBeforeCursor - codeLen;
     let newPos;
     if (nationalDigitsBefore <= 0) newPos = prefixLen;
@@ -199,48 +451,62 @@ function handleInput() {
         }
       }
     }
+    
     phoneInput.value = newFormatted;
     if (isShared) updateCountry({flag: 'shared'});
     else updateCountry(targetCountry);
     setCursorPos(newPos);
   }
-  wrapper.classList.toggle('has-value', phoneInput.value.length > 1);
 }
+
 function initDefault() {
-  phoneInput.focus();
+  // Не вызываем focus() автоматически на мобильных, чтобы не открывать клавиатуру
 }
+
+/* Обработчики событий */
+
+// Фокус: показываем флаг, ставим +7 если пусто
 phoneInput.addEventListener('focus', () => {
-  flagContainer.style.visibility = 'visible';
   if (phoneInput.value === '') {
     const ru = countries.find(c => c.flag === 'ru');
     if (ru) {
       phoneInput.value = '+7 ';
       updateCountry({flag: 'shared'});
-      countryTitle.textContent = 'Россия / Казахстан';
       wrapper.classList.add('has-value');
       setCursorPos(3);
     }
+  } else {
+    wrapper.classList.add('has-value');
   }
-  if (phoneInput.value.length > 1) wrapper.classList.add('has-value');
+  // Вибрация при тапе
   Telegram?.WebApp?.HapticFeedback?.impactOccurred('soft');
 });
+
+// Блюр: проверяем пусто ли
 phoneInput.addEventListener('blur', () => {
   let val = phoneInput.value.trim();
   const cleanDigits = val.replace(/[^\d]/g, '');
   const country = detectCountry('+' + cleanDigits);
   let codeLen = country ? country.codes[0].length : 0;
+
+  // Если удалили все цифры номера (остался только код или меньше)
   if (cleanDigits.length <= codeLen) {
     phoneInput.value = '';
-    wrapper.classList.remove('has-value');
+    wrapper.classList.remove('has-value'); // Убираем акцент рамки
     flagContainer.style.visibility = 'hidden';
+  } else {
+    // Если номер есть, рамка остается акцентной (.has-value остается)
   }
 });
+
 phoneInput.addEventListener('keydown', (e) => {
   const pos = phoneInput.selectionStart;
+  // Запрет удаления плюса
   if ((e.key === 'Backspace' || e.key === 'Delete') && pos <= 1) {
     e.preventDefault();
     return;
   }
+  // Быстрое удаление +7
   if (e.key === 'Backspace' && phoneInput.value.startsWith('+7') && pos <= 3) {
     e.preventDefault();
     phoneInput.value = '+';
@@ -250,7 +516,10 @@ phoneInput.addEventListener('keydown', (e) => {
     setCursorPos(1);
   }
 });
+
 phoneInput.addEventListener('input', handleInput);
+
+// Обработка вставки номера
 phoneInput.addEventListener('paste', (e) => {
   e.preventDefault();
   let paste = (e.clipboardData || window.clipboardData).getData('text');
@@ -260,6 +529,7 @@ phoneInput.addEventListener('paste', (e) => {
     handleInput();
   }
 });
+
 setTimeout(() => { if (countries.length > 0) initDefault(); }, 200);
 </script>
 </body>
