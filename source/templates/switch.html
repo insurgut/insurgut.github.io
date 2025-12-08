@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings • TG Colors</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{margin:0;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5rem;font-family:system-ui,sans-serif;background:var(--tg-theme-bg-color,#000);color:var(--tg-theme-text-color,#fff);padding:2rem}
+.setting-item{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px;gap:1.5rem}
+.text-block{flex:1;display:flex;flex-direction:column;gap:.25rem}
+.text-block h3{margin:0;font-size:1.125rem;font-weight:600;color:var(--tg-theme-text-color,#fff)}
+.text-block p{margin:0;font-size:.875rem;color:var(--tg-theme-subtitle-text-color,#999);line-height:1.4}
+.switch{position:relative;width:51px;height:31px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--tg-theme-hint-color,#888);border-radius:31px;transition:.3s}
+.slider:before{position:absolute;content:"";height:27px;width:27px;left:2px;bottom:2px;background:var(--tg-theme-bg-color,#fff);border-radius:50%;transition:.3s}
+input:checked + .slider{background:var(--tg-theme-button-color,#0a84ff)}
+input:checked + .slider:before{transform:translateX(20px)}
+.simple-item{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px}
+.simple-item h3{margin:0;font-size:1.125rem;font-weight:600;color:var(--tg-theme-text-color,#fff)}
+</style>
+</head>
+<body>
+<div class="setting-item">
+<div class="text-block">
+<h3>Уведомления</h3>
+<p>Получать push-уведомления о новых поступлениях и акциях</p>
+</div>
+<label class="switch">
+<input type="checkbox" checked>
+<span class="slider"></span>
+</label>
+</div>
+
+<div class="simple-item">
+<h3>Тёмная тема</h3>
+<label class="switch">
+<input type="checkbox" checked>
+<span class="slider"></span>
+</label>
+</div>
+
+<script>
+if(window.Telegram?.WebApp){
+  const tg=Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+  document.body.style.background=tg.backgroundColor;
+  const params=tg.themeParams;
+  Object.entries(params).forEach(([k,v])=>{
+    document.documentElement.style.setProperty(`--tg-theme-${k.replace(/([A-Z])/g,m=>'-'+m.toLowerCase())}`,v);
+  });
+}
+</script>
+</body>
+</html>
