@@ -1,12 +1,17 @@
 [
   {
-    "name": "сын той же мёртвой шлюхи",
-    "avatar_url": "https://avatars.githubusercontent.com/u/202500557?v=4",
-    "content_url": "https://insurgut.github.io/project-1"
+    "name": "Three.js Demo",
+    "avatar_url": "https://global.discourse-cdn.com/standard17/uploads/threejs/original/2X/e/e4f86d2200d2d35c30f7b1494e96b9595ebc2751.png",
+    "content_url": "https://threejs.org/examples/webgl_animation_keyframes.html"
   },
   {
-    "name": "Lisurgut Bot",
-    "avatar_url": "https://via.placeholder.com/150",
-    "content_url": "https://insurgut.github.io/bot-panel"
+    "name": "Wikipedia Main",
+    "avatar_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Wikipedia-logo-v2.svg/1200px-Wikipedia-logo-v2.svg.png",
+    "content_url": "https://www.wikipedia.org"
+  },
+  {
+    "name": "GSAP Animation",
+    "avatar_url": "https://gsap.com/favicon-32x32.png",
+    "content_url": "https://gsap.com"
   }
 ]
