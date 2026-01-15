@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mediaFormats>
+  <category name="images-raster"><f ext=".jpg"/><f ext=".jpeg"/><f ext=".jpe"/><f ext=".png"/><f ext=".gif"/><f ext=".apng"/><f ext=".bmp"/><f ext=".dib"/><f ext=".tif"/><f ext=".tiff"/><f ext=".webp"/><f ext=".avif"/><f ext=".heic"/><f ext=".heif"/><f ext=".jp2"/><f ext=".j2k"/><f ext=".jpf"/><f ext=".jpx"/><f ext=".jpm"/><f ext=".hdr"/><f ext=".exr"/><f ext=".tga"/><f ext=".pcx"/><f ext=".ppm"/><f ext=".pgm"/><f ext=".pbm"/><f ext=".pnm"/></category>
+  <category name="images-vector"><f ext=".svg"/><f ext=".svgz"/><f ext=".eps"/><f ext=".ps"/><f ext=".pdf"/><f ext=".ai"/><f ext=".cdr"/><f ext=".wmf"/><f ext=".emf"/></category>
+  <category name="design-projects"><f ext=".psd"/><f ext=".psb"/><f ext=".xcf"/><f ext=".kra"/><f ext=".clip"/><f ext=".afphoto"/><f ext=".afdesign"/><f ext=".indd"/><f ext=".xd"/><f ext=".fig"/></category>
+
+  <category name="icons"><f ext=".ico"/><f ext=".cur"/><f ext=".icns"/><f ext=".svg"/><f ext=".png"/></category>
+
+  <category name="video-containers"><f ext=".mp4"/><f ext=".m4v"/><f ext=".mov"/><f ext=".mkv"/><f ext=".webm"/><f ext=".avi"/><f ext=".wmv"/><f ext=".asf"/><f ext=".flv"/><f ext=".f4v"/><f ext=".mpg"/><f ext=".mpeg"/><f ext=".m2v"/><f ext=".ts"/><f ext=".mts"/><f ext=".m2ts"/><f ext=".3gp"/><f ext=".3g2"/><f ext=".ogv"/><f ext=".vob"/><f ext=".rm"/><f ext=".rmvb"/></category>
+  <category name="video-projects"><f ext=".prproj"/><f ext=".aep"/><f ext=".drp"/><f ext=".veg"/><f ext=".fcpproject"/></category>
+
+  <category name="audio"><f ext=".mp3"/><f ext=".wav"/><f ext=".flac"/><f ext=".aac"/><f ext=".m4a"/><f ext=".alac"/><f ext=".ogg"/><f ext=".oga"/><f ext=".opus"/><f ext=".wma"/><f ext=".aiff"/><f ext=".aif"/><f ext=".au"/><f ext=".mid"/><f ext=".midi"/><f ext=".amr"/><f ext=".ac3"/><f ext=".dts"/><f ext=".mka"/></category>
+  <category name="audio-projects"><f ext=".aup3"/><f ext=".als"/><f ext=".flp"/></category>
+
+  <category name="fonts"><f ext=".ttf"/><f ext=".otf"/><f ext=".woff"/><f ext=".woff2"/><f ext=".eot"/><f ext=".pfa"/><f ext=".pfb"/><f ext=".pfm"/><f ext=".afm"/><f ext=".bdf"/><f ext=".pcf"/><f ext=".fon"/><f ext=".fnt"/></category>
+
+  <category name="animation"><f ext=".gif"/><f ext=".apng"/><f ext=".webp"/><f ext=".lottie"/><f ext=".tgs"/><f ext=".swf"/></category>
+
+  <category name="3d"><f ext=".obj"/><f ext=".fbx"/><f ext=".stl"/><f ext=".gltf"/><f ext=".glb"/><f ext=".blend"/><f ext=".dae"/><f ext=".3ds"/><f ext=".ply"/></category>
+
+  <category name="subtitles-captions"><f ext=".srt"/><f ext=".vtt"/><f ext=".ass"/><f ext=".ssa"/><f ext=".sub"/><f ext=".idx"/></category>
+
+  <category name="documents-text"><f ext=".txt"/><f ext=".md"/><f ext=".rtf"/><f ext=".pdf"/><f ext=".djvu"/><f ext=".epub"/><f ext=".mobi"/><f ext=".html"/><f ext=".htm"/><f ext=".xhtml"/></category>
+  <category name="office"><f ext=".doc"/><f ext=".docx"/><f ext=".odt"/><f ext=".ott"/><f ext=".xls"/><f ext=".xlsx"/><f ext=".ods"/><f ext=".ppt"/><f ext=".pptx"/><f ext=".odp"/></category>
+</mediaFormats>
