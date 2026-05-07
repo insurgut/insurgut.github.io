@@ -21,7 +21,7 @@ DURATION = 11
 # ── Способы установки громкости ──────────────────────────
 
 def set_volume_pycaw(volume: int):
-    """Способ 1: pycaw — исправленный вызов."""
+    """Способ 1: pycaw — прямой доступ к Windows Audio API."""
     devices = AudioUtilities.GetSpeakers()
     interface = devices.Activate(
         IAudioEndpointVolume._iid_, CLSCTX_ALL, None
@@ -32,14 +32,11 @@ def set_volume_pycaw(volume: int):
 
 
 def set_volume_ctypes_winapi(volume: int):
-    """Способ 2: winmm.dll через ctypes."""
-    try:
-        winmm = ctypes.WinDLL("winmm")
-        val = int(volume / 100.0 * 0xFFFF)
-        combined = val | (val << 16)
-        winmm.waveOutSetVolume(0, combined)
-    except Exception as e:
-        print(f"[VOL] winmm error: {e}")
+    """Способ 2: winmm.dll — waveOutSetVolume."""
+    winmm = ctypes.WinDLL("winmm")
+    val = int(volume / 100.0 * 0xFFFF)
+    combined = val | (val << 16)  # левый + правый канал
+    winmm.waveOutSetVolume(0, combined)
 
 
 def set_volume_nircmd(volume: int):
@@ -52,44 +49,74 @@ def set_volume_nircmd(volume: int):
         )
     except FileNotFoundError:
         pass
-    except Exception as e:
-        print(f"[VOL] nircmd error: {e}")
 
 
-def set_volume_powershell(volume: int):
-    """Способ 4: PowerShell через Windows Audio."""
-    ps = (
-        "[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); "
-        "$wsh = New-Object -ComObject WScript.Shell; "
-        "for ($i=0; $i -lt 50; $i++) { $wsh.SendKeys([char]174) }; "
-        f"$steps = [Math]::Round({volume} / 2); "
-        "for ($i=0; $i -lt $steps; $i++) { $wsh.SendKeys([char]175) }"
-    )
-    try:
-        subprocess.run(
-            ["powershell", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", ps],
-            timeout=8, creationflags=subprocess.CREATE_NO_WINDOW
-        )
-    except Exception as e:
-        print(f"[VOL] PowerShell error: {e}")
+def set_volume_powershell_core(volume: int):
+    """Способ 4: PowerShell через AudioEndpointVolume COM напрямую."""
+    ps = f"""
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+[ComImport]
+[Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
+internal class MMDeviceEnumeratorComObject {{ }}
+
+public class Audio {{
+    [DllImport("ole32.dll")]
+    static extern int CoCreateInstance(ref Guid clsid, IntPtr inner,
+        uint context, ref Guid uuid, out IntPtr ptr);
+
+    public static void SetVolume(float vol) {{
+        var enumeratorId = new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E");
+        var enumeratorIId = new Guid("A95664D2-9614-4F35-A746-DE8DB63617E6");
+        var endpointIId = new Guid("5CDF2C82-841E-4546-9722-0CF74078229A");
+
+        IntPtr pEnum = IntPtr.Zero;
+        CoCreateInstance(ref enumeratorId, IntPtr.Zero, 1, ref enumeratorIId, out pEnum);
+    }}
+}}
+"@
+# Используем Shell.Application для простоты
+$shell = New-Object -ComObject Shell.Application
+# Устанавливаем громкость через SndVol
+$vol = [Math]::Round({volume})
+$code = @'
+using System.Runtime.InteropServices;
+public class VolumeHelper {{
+    [DllImport("user32.dll")]
+    public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
+    public static void SetVol(int target) {{
+        // VK_VOLUME_MUTE = 0xAD, сначала сбрасываем mute
+        keybd_event(0xAD, 0, 2, 0); // key up чтобы не переключать
+    }}
+}}
+'@
+"""
+    # Этот метод пропускаем — используем только надёжные выше
+    pass
 
 
 def set_system_volume(volume: int):
+    """Применяем все надёжные методы."""
+
+    # Способ 1: pycaw
     if PYCAW_AVAILABLE:
         try:
             set_volume_pycaw(volume)
-            print(f"[VOL] pycaw: {volume}%")
+            print(f"[VOL] pycaw: {volume}%  OK")
         except Exception as e:
             print(f"[VOL] pycaw failed: {e}")
 
+    # Способ 2: winmm.dll
     try:
         set_volume_ctypes_winapi(volume)
-        print(f"[VOL] winmm: {volume}%")
+        print(f"[VOL] winmm: {volume}%  OK")
     except Exception as e:
         print(f"[VOL] winmm failed: {e}")
 
+    # Способ 3: nircmd (тихо, если нет — пропускаем)
     set_volume_nircmd(volume)
-    set_volume_powershell(volume)
 
 
 # ── Блокировка горячих клавиш ────────────────────────────
@@ -161,10 +188,7 @@ def main():
     root.overrideredirect(True)
     root.focus_force()
 
-    # Запрещаем закрытие
     root.protocol("WM_DELETE_WINDOW", lambda: None)
-
-    # Только поддерживаемые tkinter биндинги (без <Super-*>)
     root.bind("<Alt-F4>",         lambda e: "break")
     root.bind("<Escape>",         lambda e: "break")
     root.bind("<Control-Escape>", lambda e: "break")
